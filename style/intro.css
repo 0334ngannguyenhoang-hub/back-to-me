@@ -1,0 +1,35 @@
+/* INTRO */
+.intro {
+    padding: 60px 20px;
+}
+
+.intro h2 {
+    color: #ff4b3e;
+    margin-bottom: 30px;
+    font-size: 40px;
+}
+
+.description {
+    width: 700px;
+    margin: 0 auto;
+    padding: 10px 40px;
+    color: #51301D;
+    font-style: italic;
+    font-weight: 300;
+}
+
+.description p:last-child {
+    font-weight: 700;
+}
+
+.demo-cards {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-bottom: 10px;
+}
+
+.demo-cards img {
+    width: 320px;
+    border-radius: 12px;
+}

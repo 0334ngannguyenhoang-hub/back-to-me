@@ -1,0 +1,39 @@
+/* CARD OUTPUT */
+.card-output {
+    margin: 60px auto;
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+}
+
+.card-side {
+    position: relative;
+    width: 400px;
+}
+
+.card-bg {
+    width: 100%;
+}
+
+.photo-child,
+.photo-adult {
+    position: absolute;
+    top: 80px;
+    left: 40px;
+    width: 120px;
+    height: 150px;
+    object-fit: cover;
+}
+
+.text-child,
+.text-adult {
+    position: absolute;
+    bottom: 40px;
+    left: 40px;
+    text-align: left;
+    font-size: 14px;
+}
+
+.hidden {
+    display: none;
+}

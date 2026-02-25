@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BACK TO ME - NGUỆCH</title>
+  <link rel="stylesheet" href="style/style.css" />
+  <link rel="stylesheet" href="style/hero.css" />
+  <link rel="stylesheet" href="style/intro.css" />
+  <link rel="stylesheet" href="style/form.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+
+<body>
+  <!-- SVG NOISE FILTER FOR CHALK EFFECT -->
+  <svg style="display: none;">
+    <defs>
+      <filter id="chalkNoise">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="4" result="noise" />
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.5" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
+    </defs>
+  </svg>
+
+  <!-- LOGO -->
+  <img src="assets/images/logo-full.png" class="logo" />
+
+
+  <!-- HERO -->
+  <section class="hero">
+
+    <!-- DECOR IMAGES -->
+    <img src="assets/images/ban-phim.png" class="decor decor-1" />
+    <img src="assets/images/o.png" class="decor decor-2" />
+    <img src="assets/images/sao.png" class="decor decor-3" />
+    <img src="assets/images/cau-truot.png" class="decor decor-4" />
+    <img src="assets/images/ao.png" class="decor decor-5" />
+    <img src="assets/images/sach.png" class="decor decor-6" />
+    <img src="assets/images/ly.png" class="decor decor-7" />
+    <img src="assets/images/tranh.png" class="decor decor-8" />
+
+    <h1 class="title colorful">
+      <span>B</span><span>A</span><span>C</span><span>K</span>
+      <span> </span>
+      <span>T</span><span>O</span>
+      <span> </span>
+      <span>M</span><span>E</span>
+    </h1>
+
+    <p class="subtitle">Một chiến dịch truyền thông bởi Nhảy Đội</p>
+
+    <img src="assets/images/box.png" class="memory-box" />
+
+  </section>
+
+  <!-- INTRO -->
+  <section class="intro">
+    <h2>Your first version never logs out.</h2>
+
+    <div class="demo-cards">
+      <img src="assets/images/demo-front.png" />
+      <img src="assets/images/demo-back.png" />
+    </div>
+
+    <div class="description">
+    <p>
+      BACK TO ME là chiến dịch truyền thông đồng hành cùng liveshow nhảy NGUỆCH của NHẢY ĐỘI,
+      nơi mỗi người tham gia được nhìn lại mình qua hai phiên bản: ngày bé và hiện tại.
+    </p>
+
+    <p>
+      Từ những ký ức nhỏ xíu đến những bước nhảy hôm nay, hành trình lớn lên được kể lại 
+      bằng chuyển động và bằng chính bạn.
+    </p>
+
+    <p>
+      Hãy điền thông tin của mình bên dưới để tạo nên phiên bản riêng của bạn.
+    </p>
+
+    <p>
+      Lưu ý: Những khán giả đã đăng ký vé sẽ được tặng thẻ trực tiếp trong đêm diễn.
+    </p>
+    </div>
+  </section>
+
+  <!-- FORM -->
+  <section class="information">
+    <h2 class="info-title">INFORMATION</h2>
+
+    <div class="form-container">
+
+      <!-- CHILD -->
+      <div class="form-block">
+        <h3>CHÂN DUNG BÉ</h3>
+
+        <input type="file" id="childImage" accept="image/*" />
+        <input type="text" id="childNameInput" placeholder="Name (Tên bé)" />
+        <input type="text" id="childDreamInput" placeholder="Dream Job (Nghề mơ ước)" />
+        <input type="text" id="childSuperInput" placeholder="Superpower" />
+      </div>
+
+      <!-- ADULT -->
+      <div class="form-block">
+        <h3>CHÂN DUNG HIỆN TẠI</h3>
+
+        <input type="file" id="adultImage" accept="image/*" />
+        <input type="text" id="adultNameInput" placeholder="Name (Tên hiện tại)" />
+        <input type="text" id="adultJobInput" placeholder="Current Job (Nghề hiện tại)" />
+        <input type="text" id="adultSuperInput" placeholder="Superpower" />
+      </div>
+
+    </div>
+
+    <div class="submit-wrapper">
+      <button onclick="generateCard()">Generate</button>
+      <button onclick="downloadCard()">Download</button>
+    </div>
+  </section>
+
+  <!-- CARD OUTPUT (ẨN) -->
+  <div id="cardOutput" class="card-output hidden">
+
+    <div class="card-side">
+      <img src="assets/images/id-template-front.png" class="card-bg" />
+      <img id="previewChildImg" class="photo-child" />
+      <div class="text-child">
+        <p id="childName"></p>
+        <p id="childDream"></p>
+        <p id="childSuper"></p>
+      </div>
+    </div>
+
+    <div class="card-side">
+      <img src="assets/images/id-template-back.png" class="card-bg" />
+      <img id="previewAdultImg" class="photo-adult" />
+      <div class="text-adult">
+        <p id="adultName"></p>
+        <p id="adultJob"></p>
+        <p id="adultSuper"></p>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="js/main.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,93 @@
+/* ===== FPT SONG VUI FONT ===== */
+
+@font-face {
+    font-family: "FPT Song Vui";
+    src: url("../assets/fonts/FPTSONGVUI-Light.ttf") format("truetype");
+    font-weight: 300;
+}
+
+@font-face {
+    font-family: "FPT Song Vui";
+    src: url("../assets/fonts/FPTSONGVUI-Light-Italic.TTF") format("truetype");
+    font-style: italic;
+    font-weight: 300;
+}
+
+@font-face {
+    font-family: "FPT Song Vui";
+    src: url("../assets/fonts/FPTSONGVUI-Regular.ttf") format("truetype");
+    font-weight: 400;
+}
+
+@font-face {
+    font-family: "FPT Song Vui";
+    src: url("../assets/fonts/FPT SONGVUI-Italic.ttf") format("truetype");
+    font-style: italic;
+    font-weight: 400;
+}
+
+@font-face {
+    font-family: "FPT Song Vui";
+    src: url("../assets/fonts/FPTSONGVUI-Bold.ttf") format("truetype");
+    font-weight: 700;
+}
+
+@font-face {
+    font-family: "FPT Song Vui";
+    src: url("../assets/fonts/FPTSONGVUI-Bold-Italic.ttf") format("truetype");
+    font-style: italic;
+    font-weight: 700;
+}
+
+body {
+    margin: 0;
+    font-family: "FPT Song Vui", sans-serif;
+    background: url("../assets/images/background.png") center center / cover no-repeat fixed;
+    text-align: center;
+}
+
+/* RESPONSIVE */
+@media (max-width: 1024px) {
+
+    .decor {
+        width: 15%;
+    }
+
+    .title {
+        font-size: 48px;
+    }
+
+}
+
+@media (max-width: 768px) {
+
+    .decor {
+        display: none;
+    }
+
+    .title {
+        font-size: 38px;
+    }
+
+    .subtitle {
+        font-size: 14px;
+    }
+
+    .memory-box {
+        width: 120%;
+        transform: translateY(50px);
+    }
+
+}
+
+@media (max-width: 768px) {
+
+    .demo-cards {
+        flex-direction: column;
+    }
+
+    .card-output {
+        flex-direction: column;
+    }
+
+}
