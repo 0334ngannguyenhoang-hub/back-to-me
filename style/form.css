@@ -2,6 +2,20 @@
 .information {
     padding: 60px 20px;
 }
+.title {
+    letter-spacing: -6px;
+}
+.colorful span:nth-child(1) { color: #ff4b3e; }
+.colorful span:nth-child(2) { color: #2ecc71; }
+.colorful span:nth-child(3) { color: #f39c12; }
+.colorful span:nth-child(4) { color: #3498db; }
+.colorful span:nth-child(5) { color: #db34db; }
+.colorful span:nth-child(6) { color: #ff4b3e; }
+.colorful span:nth-child(7) { color: #2ecc71; }
+.colorful span:nth-child(8) { color: #860ef0; }
+.colorful span:nth-child(9) { color: #f39c12; }
+.colorful span:nth-child(10) { color: #3498db; }
+.colorful span:nth-child(11) { color: #0fff57; }
 
 .info-title {
     font-size: 40px;
@@ -9,11 +23,20 @@
     letter-spacing: 4px;
 }
 
+.form-block h3 {
+    color: #B22200;
+}
+
 .form-container {
     display: flex;
     justify-content: center;
     gap: 60px;
     flex-wrap: wrap;
+}
+
+.form-details {
+    text-align: left;
+    color: #51301D; ;
 }
 
 .form-block {
@@ -27,6 +50,7 @@
     padding: 10px;
     border-radius: 6px;
     border: 1px solid #ccc;
+    width: 270px;
 }
 
 .submit-wrapper {

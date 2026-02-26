@@ -86,28 +86,76 @@
 
   <!-- FORM -->
   <section class="information">
-    <h2 class="info-title">INFORMATION</h2>
+      <h1 class="title colorful">
+      <span>I</span>
+      <span>N</span>
+      <span>F</span>
+      <span>O</span>
+      <span>R</span>
+      <span>M</span>
+      <span>A</span>
+      <span>T</span>
+      <span>I</span>
+      <span>O</span>
+      <span>N</span>
+    </h1>
 
     <div class="form-container">
 
-      <!-- CHILD -->
+            <!-- ADULT -->
       <div class="form-block">
-        <h3>CHÂN DUNG BÉ</h3>
+        <h3>CĂN CƯỚC BÉ BỰ</h3>
 
-        <input type="file" id="childImage" accept="image/*" />
-        <input type="text" id="childNameInput" placeholder="Name (Tên bé)" />
-        <input type="text" id="childDreamInput" placeholder="Dream Job (Nghề mơ ước)" />
-        <input type="text" id="childSuperInput" placeholder="Superpower" />
+        <div class="form-details">
+          <p> Ava (dùng ảnh hiện tại) </p>
+          <input type="file" id="adultImage" accept="image/*" />
+
+          <p> Name (Tên bạn muốn gọi) </p>
+          <input type="text" id="adultNameInput" placeholder="Name" />
+
+          <p> Age (Tuổi hiện tại) </p>
+          <input type="text" id="adultAgeInput" placeholder="Age" />
+
+          <p> Current Job (Công việc bạn đang làm) </p>
+          <input type="text" id="adultJobInput" placeholder="Current Job" />
+
+          <p> Life Update (Điều mới nhất đang diễn ra trong cuộc sống) </p>
+          <input type="text" id="adultLifeUpdateInput" placeholder="Life Update" />
+
+          <p> Superpower (Điểm mạnh hoặc khả năng nội bật của bạn) </p>
+          <input type="text" id="adultSuperInput" placeholder="Superpower" />
+
+          <p> Current Issues (Vấn đề hoặc thử thách bạn đang gặp phải) </p>
+          <input type="text" id="adultIssuesInput" placeholder="Current Issues" />
+        </div>
       </div>
 
-      <!-- ADULT -->
+      <!-- CHILD -->
       <div class="form-block">
-        <h3>CHÂN DUNG HIỆN TẠI</h3>
+        <h3>CHÂN DUNG BÉ TÍ</h3>
 
-        <input type="file" id="adultImage" accept="image/*" />
-        <input type="text" id="adultNameInput" placeholder="Name (Tên hiện tại)" />
-        <input type="text" id="adultJobInput" placeholder="Current Job (Nghề hiện tại)" />
-        <input type="text" id="adultSuperInput" placeholder="Superpower" />
+        <div class="form-details">
+        <p> Ava hồi bé </p>
+        <input type="file" id="childImage" accept="image/*" />
+
+        <p> Name (Tên hồi bé) </p>
+        <input type="text" id="childNameInput" placeholder="Name" />
+
+        <p> Age (Số tuổi lúc đó) </p>
+        <input type="text" id="childAgeInput" placeholder="Age" />
+
+        <p> Dream Job (Nghề mơ ước hồi bé) </p>
+        <input type="text" id="childDreamInput" placeholder="Dream Job (Nghề mơ ước)" />
+
+        <p>  Life Update (Việc quan trọng nhất lúc ấy, ví dụ: "Mới biết đi")</p>
+        <input type="text" id="childLifeUpdateInput" placeholder="Life Update" />
+
+        <p> Superpower (Điểm mạnh hoặc khả năng nội bật hồi bé) </p>
+        <input type="text" id="childSuperInput" placeholder="Superpower" />
+
+        <p> Current Issues (Vấn đề lớn nhất thời đó) </p>
+        <input type="text" id="childIssuesInput" placeholder="Current Issues" />
+      </div>
       </div>
 
     </div>
@@ -144,6 +192,7 @@
   </div>
 
   <script src="js/main.js"></script>
+  <script src="js/card-generator.js"></script>
 
 </body>
 
