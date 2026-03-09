@@ -20,23 +20,4 @@ introObserver.observe(introSection);
 
 
 
-function previewImage(input, targetId) {
-  const file = input.files[0];
-  const reader = new FileReader();
-
-  reader.onload = function(e) {
-    document.getElementById(targetId).src = e.target.result;
-  };
-
-  reader.readAsDataURL(file);
-}
-
-document.getElementById("childImage").addEventListener("change", function() {
-  previewImage(this, "previewChildImg");
-});
-
-document.getElementById("adultImage").addEventListener("change", function() {
-  previewImage(this, "previewAdultImg");
-});
-
 

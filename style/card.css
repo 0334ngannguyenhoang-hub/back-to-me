@@ -171,8 +171,7 @@
     gap:4px;
 }
 
-
-/* ===== NORMAL ROW ===== */
+/* ===== ROW ===== */
 
 .text-child p,
 .text-adult p{
@@ -183,6 +182,14 @@
     margin:0;
 }
 
+/* label */
+
+.text-child p[data-label]::before,
+.text-adult p[data-label]::before{
+
+    content:attr(data-label);
+    margin-right:6px;
+}
 
 /* dotted line */
 
@@ -191,13 +198,12 @@
 
     content:'';
 
-    flex-grow:1;
+    flex:1;
 
     border-bottom:1px dotted rgba(0,0,0,0.4);
 
-    margin:0 6px 2px 6px;
+    margin-left:6px;
 }
-
 
 /* ===== VALUE ===== */
 
@@ -206,6 +212,15 @@
 
     color:#c5331c;
     font-weight:700;
+
+    min-width: 60px;
+    max-width: 160px;        
+    text-align:left;
+
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    padding-left: 6px;
 }
 
 
@@ -215,56 +230,27 @@
 
     display:flex;
     align-items:baseline;
-    gap:14px;
+    justify-content:space-between;
 
 }
 
+.line-name-age span{
 
-/* name field */
+    width:90px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:clip;
 
-.line-name-age span:first-of-type{
-
-    position:relative;
-    padding-right:4px;
-
+    color:#c5331c;
+    font-weight:700;
 }
 
-.line-name-age span:first-of-type::after{
-
-    content:'';
-
-    position:relative;
-
-    display:inline-block;
-
-    width:80px;
-
-    border-bottom:1px dotted rgba(0,0,0,0.4);
-
-    margin:0 6px 2px 6px;
-}
-
-
-/* age field */
-
-.line-name-age span:last-of-type{
-
-    position:relative;
-    padding-right:4px;
-
-}
-
-.line-name-age span:last-of-type::after{
-
-    content:'';
-
-    display:inline-block;
-
-    width:40px;
-
-    border-bottom:1px dotted rgba(0,0,0,0.4);
-
-    margin-left:6px;
+.line-name-age span::after {
+    content: '';
+    display: inline-block;
+    width: 75px;
+    border-bottom: 1px dotted rgba(0,0,0,0.4);
+    margin-left: 6px;
 }
 
 /* ================= STATUS STAMP ================= */
