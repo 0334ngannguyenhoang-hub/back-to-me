@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="style/hero.css" />
   <link rel="stylesheet" href="style/intro.css" />
   <link rel="stylesheet" href="style/form.css" />
+  <link rel="stylesheet" href="style/card.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 
@@ -64,29 +65,29 @@
     </div>
 
     <div class="description">
-    <p>
-      BACK TO ME là chiến dịch truyền thông đồng hành cùng liveshow nhảy NGUỆCH của NHẢY ĐỘI,
-      nơi mỗi người tham gia được nhìn lại mình qua hai phiên bản: ngày bé và hiện tại.
-    </p>
+      <p>
+        BACK TO ME là chiến dịch truyền thông đồng hành cùng liveshow nhảy NGUỆCH của NHẢY ĐỘI,
+        nơi mỗi người tham gia được nhìn lại mình qua hai phiên bản: ngày bé và hiện tại.
+      </p>
 
-    <p>
-      Từ những ký ức nhỏ xíu đến những bước nhảy hôm nay, hành trình lớn lên được kể lại 
-      bằng chuyển động và bằng chính bạn.
-    </p>
+      <p>
+        Từ những ký ức nhỏ xíu đến những bước nhảy hôm nay, hành trình lớn lên được kể lại
+        bằng chuyển động và bằng chính bạn.
+      </p>
 
-    <p>
-      Hãy điền thông tin của mình bên dưới để tạo nên phiên bản riêng của bạn.
-    </p>
+      <p>
+        Hãy điền thông tin của mình bên dưới để tạo nên phiên bản riêng của bạn.
+      </p>
 
-    <p>
-      Lưu ý: Những khán giả đã đăng ký vé sẽ được tặng thẻ trực tiếp trong đêm diễn.
-    </p>
+      <p>
+        Lưu ý: Những khán giả đã đăng ký vé sẽ được tặng thẻ trực tiếp trong đêm diễn.
+      </p>
     </div>
   </section>
 
   <!-- FORM -->
   <section class="information">
-      <h1 class="title colorful">
+    <h1 class="title colorful">
       <span>I</span>
       <span>N</span>
       <span>F</span>
@@ -102,7 +103,7 @@
 
     <div class="form-container">
 
-            <!-- ADULT -->
+      <!-- ADULT -->
       <div class="form-block">
         <h3>CĂN CƯỚC BÉ BỰ</h3>
 
@@ -135,27 +136,27 @@
         <h3>CHÂN DUNG BÉ TÍ</h3>
 
         <div class="form-details">
-        <p> Ava hồi bé </p>
-        <input type="file" id="childImage" accept="image/*" />
+          <p> Ava hồi bé </p>
+          <input type="file" id="childImage" accept="image/*" />
 
-        <p> Name (Tên hồi bé) </p>
-        <input type="text" id="childNameInput" placeholder="Name" />
+          <p> Name (Tên hồi bé) </p>
+          <input type="text" id="childNameInput" placeholder="Name" />
 
-        <p> Age (Số tuổi lúc đó) </p>
-        <input type="text" id="childAgeInput" placeholder="Age" />
+          <p> Age (Số tuổi lúc đó) </p>
+          <input type="text" id="childAgeInput" placeholder="Age" />
 
-        <p> Dream Job (Nghề mơ ước hồi bé) </p>
-        <input type="text" id="childDreamInput" placeholder="Dream Job (Nghề mơ ước)" />
+          <p> Dream Job (Nghề mơ ước hồi bé) </p>
+          <input type="text" id="childDreamInput" placeholder="Dream Job (Nghề mơ ước)" />
 
-        <p>  Life Update (Việc quan trọng nhất lúc ấy, ví dụ: "Mới biết đi")</p>
-        <input type="text" id="childLifeUpdateInput" placeholder="Life Update" />
+          <p> Life Update (Việc quan trọng nhất lúc ấy, ví dụ: "Mới biết đi")</p>
+          <input type="text" id="childLifeUpdateInput" placeholder="Life Update" />
 
-        <p> Superpower (Điểm mạnh hoặc khả năng nội bật hồi bé) </p>
-        <input type="text" id="childSuperInput" placeholder="Superpower" />
+          <p> Superpower (Điểm mạnh hoặc khả năng nội bật hồi bé) </p>
+          <input type="text" id="childSuperInput" placeholder="Superpower" />
 
-        <p> Current Issues (Vấn đề lớn nhất thời đó) </p>
-        <input type="text" id="childIssuesInput" placeholder="Current Issues" />
-      </div>
+          <p> Current Issues (Vấn đề lớn nhất thời đó) </p>
+          <input type="text" id="childIssuesInput" placeholder="Current Issues" />
+        </div>
       </div>
 
     </div>
@@ -166,28 +167,94 @@
     </div>
   </section>
 
-  <!-- CARD OUTPUT (ẨN) -->
-  <div id="cardOutput" class="card-output hidden">
+  <!-- CARD OUTPUT -->
+  <div id="cardOutput" class="card-output">
 
+    <!-- ================= ADULT CARD ================= -->
     <div class="card-side">
-      <img src="assets/images/id-template-front.png" class="card-bg" />
-      <img id="previewChildImg" class="photo-child" />
-      <div class="text-child">
-        <p id="childName"></p>
-        <p id="childDream"></p>
-        <p id="childSuper"></p>
+      <div class="card-info">
+
+        <!-- AVATAR -->
+        <div class="avatar-wrapper">
+          <img id="previewAdultImg" class="photo-adult">
+        </div>
+
+        <div class="card-title-text">
+          <div class="card-header-top">
+            <!-- HEADER -->
+            <div class="card-header">
+              <p class="card-present">nhaydoibiachuyen presents:</p>
+              <p class="card-title">CĂN CƯỚC BÉ BỰ</p>
+            </div>
+        
+
+            <!-- NGUỆCH LOGO -->
+            <div class="logo-wrapper">
+              <img src="assets/images/logo-text.png" class="card-logo">
+            </div>
+          </div>
+
+          <!-- INFO TEXT -->
+          <div class="text-adult">
+
+            <p class="line-name-age">Name: <span id="adultName"></span> Age: <span id="adultAge"></span></p>
+
+            <p>Current Job: <span id="adultJob"></span></p>
+
+            <p>Life Update: <span id="adultLifeUpdate"></span></p>
+
+            <p>Superpowers: <span id="adultSuper"></span></p>
+
+            <p>Current Issues: <span id="adultIssues"></span></p>
+
+            <p>Status:</p>
+
+          </div>
+        </div>
       </div>
+
+      <!-- STAMP -->
+      <img src="assets/images/under-deadline-control-stamp.png" class="card-stamp">
+
     </div>
 
-    <div class="card-side">
-      <img src="assets/images/id-template-back.png" class="card-bg" />
-      <img id="previewAdultImg" class="photo-adult" />
-      <div class="text-adult">
-        <p id="adultName"></p>
-        <p id="adultJob"></p>
-        <p id="adultSuper"></p>
+    <!-- ================= CHILD CARD ================= -->
+    <div class="card-side-1">
+      <div class="card-info">
+        <!-- AVATAR -->
+        <div class="avatar-wrapper">
+          <img id="previewChildImg" class="photo-child">
+        </div>
+
+        <div class="card-title-text">
+          <div class="card-header-top">
+            <!-- HEADER -->
+            <div class="card-header">
+              <p class="card-present">nhaydoibiachuyen presents:</p>
+              <p class="card-title">CĂN CƯỚC BÉ TÍ</p>
+            </div>
+            <!-- NGUỆCH LOGO -->
+            <div class="logo-wrapper">
+              <img src="assets/images/logo-text.png" class="card-logo">
+            </div>
+          </div>
+
+          <!-- INFO TEXT -->
+          <div class="text-child">
+            <p class="line-name-age">Name: <span id="childName"></span> Age: <span id="childAge"></span></p>
+            <p>Dream Job: <span id="childDream"></span></p>
+            <p>Life Update: <span id="childLifeUpdate"></span></p>
+            <p>Superpowers: <span id="childSuper"></span></p>
+            <p>Current Issues: <span id="childIssues"></span></p>
+            <p>Status:</p>
+          </div>
+        </div>
       </div>
+
+      <!-- STAMP -->
+      <img src="assets/images/under-parent-control-stamp.png" class="card-stamp">
     </div>
+
 
   </div>
 
