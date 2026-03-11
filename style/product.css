@@ -1,0 +1,21 @@
+.logo-product {
+    width: 100px;
+    margin-top: 10px;
+    margin-bottom: 30px;
+}
+
+.download-wrapper{
+  display:flex;
+  justify-content:center;
+  margin-top:40px;
+}
+
+.download-wrapper button{
+  padding:12px 24px;
+  border:none;
+  border-radius:10px;
+  background:#B12301;
+  color:white;
+  font-size:16px;
+  cursor:pointer;
+}
