@@ -19,5 +19,3 @@ const introObserver = new IntersectionObserver((entries) => {
 introObserver.observe(introSection);
 
 
-
-

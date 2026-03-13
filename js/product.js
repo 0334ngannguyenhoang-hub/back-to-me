@@ -24,3 +24,9 @@ function loadCardData(){
 }
 
 document.addEventListener("DOMContentLoaded", loadCardData); 
+
+const cardOutput = document.querySelector(".card-output");
+
+cardOutput.addEventListener("click", () => {
+  cardOutput.classList.toggle("active");
+});
