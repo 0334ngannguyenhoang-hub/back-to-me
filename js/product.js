@@ -1,26 +1,65 @@
-function loadCardData(){
+function safeReadCardData() {
+  try {
+    return JSON.parse(localStorage.getItem("cardData"));
+  } catch (error) {
+    console.error("Cannot parse card data from localStorage.", error);
+    return null;
+  }
+}
 
-  const data = JSON.parse(localStorage.getItem("cardData"));
+function fillText(id, value, fallback = "Chưa cập nhật") {
+  const element = document.getElementById(id);
+  if (!element) return;
+  element.textContent = value || fallback;
+}
 
-  if(!data) return;
+function fillImage(id, value) {
+  const element = document.getElementById(id);
+  if (!element) return;
 
-  document.getElementById("adultName").textContent = data.adultName;
-  document.getElementById("adultAge").textContent = data.adultAge;
-  document.getElementById("adultJob").textContent = data.adultJob;
-  document.getElementById("adultLifeUpdate").textContent = data.adultLifeUpdate;
-  document.getElementById("adultSuper").textContent = data.adultSuper;
-  document.getElementById("adultIssues").textContent = data.adultIssues;
+  if (value) {
+    element.src = value;
+  } else {
+    element.removeAttribute("src");
+  }
+}
 
-  document.getElementById("childName").textContent = data.childName;
-  document.getElementById("childAge").textContent = data.childAge;
-  document.getElementById("childDream").textContent = data.childDream;
-  document.getElementById("childLifeUpdate").textContent = data.childLifeUpdate;
-  document.getElementById("childSuper").textContent = data.childSuper;
-  document.getElementById("childIssues").textContent = data.childIssues;
+function showProductEmptyState() {
+  const emptyState = document.getElementById("emptyState");
+  const cardOutput = document.querySelector(".card-output");
+  const actionButton = document.querySelector(".action-button");
+  const footer = document.querySelector(".product-footer");
 
-  document.getElementById("adultImg").src = data.adultImg;
-  document.getElementById("childImg").src = data.childImg;
+  if (emptyState) emptyState.hidden = false;
+  if (cardOutput) cardOutput.hidden = true;
+  if (actionButton) actionButton.hidden = true;
+  if (footer) footer.hidden = true;
+}
 
+function loadCardData() {
+  const data = safeReadCardData();
+
+  if (!data || !data.adultName || !data.childName) {
+    showProductEmptyState();
+    return;
+  }
+
+  fillText("adultName", data.adultName, "Tên hiện tại");
+  fillText("adultAge", data.adultAge, "Tuổi");
+  fillText("adultJob", data.adultJob);
+  fillText("adultLifeUpdate", data.adultLifeUpdate);
+  fillText("adultSuper", data.adultSuper);
+  fillText("adultIssues", data.adultIssues);
+
+  fillText("childName", data.childName, "Tên hồi bé");
+  fillText("childAge", data.childAge, "Tuổi");
+  fillText("childDream", data.childDream);
+  fillText("childLifeUpdate", data.childLifeUpdate);
+  fillText("childSuper", data.childSuper);
+  fillText("childIssues", data.childIssues);
+
+  fillImage("adultImg", data.adultImg);
+  fillImage("childImg", data.childImg);
 }
 
 document.addEventListener("DOMContentLoaded", loadCardData);

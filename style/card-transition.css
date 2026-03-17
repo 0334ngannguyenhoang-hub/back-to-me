@@ -32,7 +32,7 @@
 .card-side-1 {
     position: absolute;
     top: 0;
-    left: 0
+    left: 0;
     ;
     width: 520px;
     height: 300px;
@@ -153,6 +153,9 @@
     height: 170px;
 
     object-fit: cover;
+
+    aspect-ratio: 140 / 170;
+    display: block;
 
     transform: rotate(-4deg);
 
@@ -342,9 +345,11 @@
     transform:scale(0);
     transform-origin:center;
 
-    transition:transform .45s cubic-bezier(.22,1,.36,1);
+    transition:transform 1.45s cubic-bezier(.22,1,.36,1);
 
     z-index:1;
+
+    pointer-events: none;
 }
 
 .card-output.active::before{
@@ -363,7 +368,7 @@
     width:520px;
     height:300px;
 
-    transition:opacity .45s cubic-bezier(.22,1,.36,1);
+    transition:opacity 1.45s cubic-bezier(.22,1,.36,1);
 
     will-change:opacity;
 }

@@ -1,61 +1,61 @@
-// Live preview script: updates the card output as the user types and uploads images.
+function updateTextPreview(inputId, outputId, fallback = "") {
+  const input = document.getElementById(inputId);
+  const output = document.getElementById(outputId);
+
+  if (!input || !output) return;
+
+  const renderValue = () => {
+    const value = input.value.trim();
+    output.textContent = value || fallback;
+  };
+
+  input.addEventListener("input", renderValue);
+  renderValue();
+}
+
+function updateImagePreview(inputId, imgId) {
+  const input = document.getElementById(inputId);
+  const img = document.getElementById(imgId);
+
+  if (!input || !img) return;
+
+  input.addEventListener("change", () => {
+    const file = input.files && input.files[0];
+    if (!file) {
+      img.removeAttribute("src");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 function setupLivePreview() {
   const textMappings = [
-    { inputId: "adultNameInput", outputId: "adultName" },
-    { inputId: "adultAgeInput", outputId: "adultAge" },
-    { inputId: "adultJobInput", outputId: "adultJob" },
-    { inputId: "adultLifeUpdateInput", outputId: "adultLifeUpdate" },
-    { inputId: "adultSuperInput", outputId: "adultSuper" },
-    { inputId: "adultIssuesInput", outputId: "adultIssues" },
-    { inputId: "childNameInput", outputId: "childName" },
-    { inputId: "childAgeInput", outputId: "childAge" },
-    { inputId: "childDreamInput", outputId: "childDream" },
-    { inputId: "childLifeUpdateInput", outputId: "childLifeUpdate" },
-    { inputId: "childSuperInput", outputId: "childSuper" },
-    { inputId: "childIssuesInput", outputId: "childIssues" },
+    { inputId: "adultNameInput", outputId: "adultName", fallback: "Tên hiện tại" },
+    { inputId: "adultAgeInput", outputId: "adultAge", fallback: "Tuổi" },
+    { inputId: "adultJobInput", outputId: "adultJob", fallback: "Chưa cập nhật" },
+    { inputId: "adultLifeUpdateInput", outputId: "adultLifeUpdate", fallback: "Chưa cập nhật" },
+    { inputId: "adultSuperInput", outputId: "adultSuper", fallback: "Chưa cập nhật" },
+    { inputId: "adultIssuesInput", outputId: "adultIssues", fallback: "Chưa cập nhật" },
+    { inputId: "childNameInput", outputId: "childName", fallback: "Tên hồi bé" },
+    { inputId: "childAgeInput", outputId: "childAge", fallback: "Tuổi" },
+    { inputId: "childDreamInput", outputId: "childDream", fallback: "Chưa cập nhật" },
+    { inputId: "childLifeUpdateInput", outputId: "childLifeUpdate", fallback: "Chưa cập nhật" },
+    { inputId: "childSuperInput", outputId: "childSuper", fallback: "Chưa cập nhật" },
+    { inputId: "childIssuesInput", outputId: "childIssues", fallback: "Chưa cập nhật" }
   ];
 
-  textMappings.forEach(({ inputId, outputId }) => {
-    const input = document.getElementById(inputId);
-    const output = document.getElementById(outputId);
-
-    if (!input || !output) return;
-
-    const update = () => {
-      output.textContent = input.value || "";
-    };
-
-    input.addEventListener("input", update);
-    // Initialize in case there is prefilled content
-    update();
+  textMappings.forEach(({ inputId, outputId, fallback }) => {
+    updateTextPreview(inputId, outputId, fallback);
   });
 
-  const imageMappings = [
-    { inputId: "adultImage", imgId: "previewAdultImg" },
-    { inputId: "childImage", imgId: "previewChildImg" },
-  ];
-
-  imageMappings.forEach(({ inputId, imgId }) => {
-    const input = document.getElementById(inputId);
-    const img = document.getElementById(imgId);
-
-    if (!input || !img) return;
-
-    input.addEventListener("change", () => {
-      const file = input.files && input.files[0];
-      if (!file) {
-        img.src = "";
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        img.src = event.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
-  });
+  updateImagePreview("adultImage", "previewAdultImg");
+  updateImagePreview("childImage", "previewChildImg");
 }
 
 if (document.readyState === "loading") {
