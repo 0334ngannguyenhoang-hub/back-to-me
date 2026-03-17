@@ -316,32 +316,39 @@
 
 /* ================= CARD TRANSITION ================= */
 
-/* INK EFFECT */
-
-.card-output::before {
-    content: "";
-    position: absolute;
-
-    bottom: -40px;
-    right: -40px;
-
-    width: 80px;
-    height: 80px;
-
-    border-radius: 50%;
-
-    background: #FF6A3A;
-
-    transform: scale(0);
-    transform-origin: center;
-
-    transition: transform .45s cubic-bezier(.4, 0, .2, 1);
-
-    z-index: 1;
+.card-output{
+    position:relative;
+    width:520px;
+    height:300px;
+    margin:80px auto;
 }
 
-.card-output.active::before {
-    transform: scale(25);
+/* INK EFFECT */
+
+.card-output::before{
+    content:"";
+    position:absolute;
+
+    bottom:-40px;
+    right:-40px;
+
+    width:80px;
+    height:80px;
+
+    border-radius:50%;
+
+    background:#FF6A3A;
+
+    transform:scale(0);
+    transform-origin:center;
+
+    transition:transform .45s cubic-bezier(.22,1,.36,1);
+
+    z-index:1;
+}
+
+.card-output.active::before{
+    transform:scale(25);
 }
 
 /* CARD LAYERS */
@@ -356,26 +363,29 @@
     width:520px;
     height:300px;
 
-    transition:opacity .35s cubic-bezier(.4,0,.2,1);
+    transition:opacity .45s cubic-bezier(.22,1,.36,1);
+
+    will-change:opacity;
 }
 
-.card-side {
-    opacity: 1;
-    z-index: 3;
+/* trạng thái ban đầu */
+
+.card-side{
+    opacity:1;
+    z-index:3;
 }
 
-.card-side-1 {
-    opacity: 0;
-    z-index: 2;
+.card-side-1{
+    opacity:0;
+    z-index:2;
 }
 
-/* active */
+/* trạng thái active */
 
-.card-output.active .card-side {
-    opacity: 0;
-    transition-delay: .15s;
+.card-output.active .card-side{
+    opacity:0;
 }
 
-.card-output.active .card-side-1 {
-    opacity: 1;
+.card-output.active .card-side-1{
+    opacity:1;
 }

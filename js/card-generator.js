@@ -1,3 +1,5 @@
+//FUNCTION TẠO CARD
+
 function generateCard() {
 
   const data = {
@@ -30,30 +32,95 @@ function generateCard() {
   window.location.href = "product.html";
 }
 
-async function downloadCards() {
+// Click chuột active cho card transition
+const cardOutput = document.querySelector(".card-output");
+if (cardOutput) {
+  cardOutput.addEventListener("click", () => {
+    cardOutput.classList.toggle("active");
+  });
+}
 
-  const cards = document.querySelectorAll(".card-side, .card-side-1");
 
-  let index = 1;
+//FUNCTION DOWNLOAD GIF
+async function downloadGIF(){
 
-  for (const card of cards) {
+  const container = document.querySelector(".card-output");
+  const card1 = container.querySelector(".card-side");
+  const card2 = container.querySelector(".card-side-1");
 
-    const canvas = await html2canvas(card, {
-      scale: 3,
-      useCORS: true,
-      backgroundColor: null
+  const gif = new GIF({
+    workers:2,
+    quality:4,
+    width:520,
+    height:300,
+    workerScript:"js/gif.worker.js"
+  });
+
+  async function capture(){
+
+    const canvas = await html2canvas(container,{
+      scale:2,
+      useCORS:true,
+      backgroundColor:null
     });
 
-    const image = canvas.toDataURL("image/png");
+    const resized = document.createElement("canvas");
+    resized.width = 520;
+    resized.height = 300;
 
-    const link = document.createElement("a");
-    link.href = image;
-    link.download = `nguach-card-${index}.png`;
+    resized.getContext("2d").drawImage(canvas,0,0,520,300);
 
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    index++;
+    return resized;
   }
+
+  const frames = 16;
+
+  /* Bé Bự → Bé Tí */
+
+  card1.style.opacity = 1;
+  card2.style.opacity = 0;
+
+  gif.addFrame(await capture(),{delay:500});
+
+  for(let i=0;i<=frames;i++){
+
+    const p = i/frames;
+
+    card1.style.opacity = 1-p;
+    card2.style.opacity = p;
+
+    await new Promise(r=>setTimeout(r,30));
+
+    gif.addFrame(await capture(),{delay:30});
+  }
+
+  gif.addFrame(await capture(),{delay:400});
+
+  /* Bé Tí → Bé Bự */
+
+  for(let i=0;i<=frames;i++){
+
+    const p = i/frames;
+
+    card1.style.opacity = p;
+    card2.style.opacity = 1-p;
+
+    await new Promise(r=>setTimeout(r,30));
+
+    gif.addFrame(await capture(),{delay:30});
+  }
+
+  gif.addFrame(await capture(),{delay:800});
+
+  gif.on("finished",function(blob){
+
+    const link=document.createElement("a");
+
+    link.href=URL.createObjectURL(blob);
+    link.download="back-to-me-card.gif";
+
+    link.click();
+  });
+
+  gif.render();
 }

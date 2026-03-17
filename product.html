@@ -16,96 +16,109 @@
 
   <img src="assets/images/logo-full.png" class="logo-product" />
 
-  <div class="card-output">
+  <h3 style="color: #B12301; margin: none;">
+    Căn cước Nguệch của bạn đã sẵn sàng!
+  </h3>
 
-    <!-- ADULT CARD -->
-    <div class="card-side">
+  <h3 style="color: #d40191; margin: none;">
+    Nhấn vào ảnh để xem hai phiên bản của bạn.
+  </h3>
 
-      <div class="card-info">
+    <div class="card-output">
 
-        <div class="avatar-wrapper">
-          <img id="adultImg" class="photo-adult">
-        </div>
+      <!-- ADULT CARD -->
+      <div class="card-side">
 
-        <div class="card-title-text">
-          <div class="card-header-top">
-            <!-- HEADER -->
-            <div class="card-header">
-              <p class="card-present">nhaydoibiachuyen presents:</p>
-              <p class="card-title">CĂN CƯỚC BÉ BỰ</p>
+        <div class="card-info">
+
+          <div class="avatar-wrapper">
+            <img id="adultImg" class="photo-adult">
+          </div>
+
+          <div class="card-title-text">
+            <div class="card-header-top">
+              <!-- HEADER -->
+              <div class="card-header">
+                <p class="card-present">nhaydoibiachuyen presents:</p>
+                <p class="card-title">CĂN CƯỚC BÉ BỰ</p>
+              </div>
+
+
+              <!-- NGUỆCH LOGO -->
+              <div class="logo-wrapper">
+                <img src="assets/images/logo-text.png" class="card-logo">
+              </div>
             </div>
 
-
-            <!-- NGUỆCH LOGO -->
-            <div class="logo-wrapper">
-              <img src="assets/images/logo-text.png" class="card-logo">
+            <div class="text-adult">
+              <p class="line-name-age">Name: <span id="adultName"></span> Age: <span id="adultAge"></span></p>
+              <p data-label="Current Job:"><span id="adultJob"></span></p>
+              <p data-label="Life Update:"><span id="adultLifeUpdate"></span></p>
+              <p data-label="Superpowers:"><span id="adultSuper"></span></p>
+              <p data-label="Current Issues:"><span id="adultIssues"></span></p>
             </div>
           </div>
 
-          <div class="text-adult">
-            <p class="line-name-age">Name: <span id="adultName"></span> Age: <span id="adultAge"></span></p>
-            <p data-label="Current Job:"><span id="adultJob"></span></p>
-            <p data-label="Life Update:"><span id="adultLifeUpdate"></span></p>
-            <p data-label="Superpowers:"><span id="adultSuper"></span></p>
-            <p data-label="Current Issues:"><span id="adultIssues"></span></p>
-          </div>
         </div>
+
+        <img src="assets/images/under-deadline-control-stamp.png" class="card-stamp">
 
       </div>
 
-      <img src="assets/images/under-deadline-control-stamp.png" class="card-stamp">
+      <!-- CHILD CARD -->
+      <div class="card-side-1">
 
-    </div>
+        <div class="card-info">
+
+          <div class="avatar-wrapper">
+            <img id="childImg" class="photo-child">
+          </div>
+
+          <div class="card-title-text">
+            <div class="card-header-top">
+              <!-- HEADER -->
+              <div class="card-header">
+                <p class="card-present">nhaydoibiachuyen presents:</p>
+                <p class="card-title">CĂN CƯỚC BÉ TÍ</p>
+              </div>
 
 
-    <!-- CHILD CARD -->
-    <div class="card-side-1">
-
-      <div class="card-info">
-
-        <div class="avatar-wrapper">
-          <img id="childImg" class="photo-child">
-        </div>
-
-        <div class="card-title-text">
-          <div class="card-header-top">
-            <!-- HEADER -->
-            <div class="card-header">
-              <p class="card-present">nhaydoibiachuyen presents:</p>
-              <p class="card-title">CĂN CƯỚC BÉ TÍ</p>
+              <!-- NGUỆCH LOGO -->
+              <div class="logo-wrapper">
+                <img src="assets/images/logo-text.png" class="card-logo">
+              </div>
             </div>
 
-
-            <!-- NGUỆCH LOGO -->
-            <div class="logo-wrapper">
-              <img src="assets/images/logo-text.png" class="card-logo">
+            <div class="text-child">
+              <p class="line-name-age">Name: <span id="childName"></span> Age: <span id="childAge"></span></p>
+              <p data-label="Dream Job:"><span id="childDream"></span></p>
+              <p data-label="Life Update:"><span id="childLifeUpdate"></span></p>
+              <p data-label="Superpowers:"><span id="childSuper"></span></p>
+              <p data-label="Current Issues:"><span id="childIssues"></span></p>
             </div>
           </div>
 
-          <div class="text-child">
-            <p class="line-name-age">Name: <span id="childName"></span> Age: <span id="childAge"></span></p>
-            <p data-label="Dream Job:"><span id="childDream"></span></p>
-            <p data-label="Life Update:"><span id="childLifeUpdate"></span></p>
-            <p data-label="Superpowers:"><span id="childSuper"></span></p>
-            <p data-label="Current Issues:"><span id="childIssues"></span></p>
-          </div>
         </div>
+
+        <img src="assets/images/under-parent-control-stamp.png" class="card-stamp">
 
       </div>
 
-      <img src="assets/images/under-parent-control-stamp.png" class="card-stamp">
-
     </div>
 
+  <div class="action-button">
+    <div class="download-wrapper">
+      <button onclick="downloadCards()">Download Card</button>
+    </div>
+
+    <div class="gif-wrapper">
+      <button onclick="downloadGIF()">Download GIF</button>
+    </div>
   </div>
 
-  <div class="download-wrapper">
-    <button onclick="downloadCards()">Download Card</button>
-  </div>
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
   <script src="js/product.js"></script>
   <script src="js/card-generator.js"></script>
-  
 </body>
 
 </html>
