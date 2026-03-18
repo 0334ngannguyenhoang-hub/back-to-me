@@ -84,8 +84,8 @@ async function loadCardData() {
   fillText("childSuper", data.childSuper);
   fillText("childIssues", data.childIssues);
 
-  fillImage("adultImg", data.adultImageBlob || data.adultImg);
-  fillImage("childImg", data.childImageBlob || data.childImg);
+  fillImage("adultImg", data.adultRenderUrl || data.adultImageBlob || data.adultImg);
+  fillImage("childImg", data.childRenderUrl || data.childImageBlob || data.childImg);
 }
 
 document.addEventListener("DOMContentLoaded", () => {

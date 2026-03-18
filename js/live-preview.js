@@ -19,22 +19,50 @@ function updateImagePreview(inputId, imgId) {
 
   if (!input || !img) return;
 
-  input.addEventListener("change", () => {
+  input.addEventListener("change", async () => {
     const file = input.files && input.files[0];
-
-    if (img.dataset.objectUrl) {
-      URL.revokeObjectURL(img.dataset.objectUrl);
-      delete img.dataset.objectUrl;
-    }
 
     if (!file) {
       img.removeAttribute("src");
       return;
     }
 
-    const objectUrl = URL.createObjectURL(file);
-    img.src = objectUrl;
-    img.dataset.objectUrl = objectUrl;
+    const normalizedImage = await createCardImageDataUrl(file, 140, 170);
+    img.src = normalizedImage;
+  });
+}
+
+function createCardImageDataUrl(file, targetWidth, targetHeight) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const image = new Image();
+
+      image.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+
+        const context = canvas.getContext("2d");
+        const scale = Math.max(targetWidth / image.width, targetHeight / image.height);
+        const drawWidth = image.width * scale;
+        const drawHeight = image.height * scale;
+        const offsetX = (targetWidth - drawWidth) / 2;
+        const offsetY = (targetHeight - drawHeight) / 2;
+
+        context.clearRect(0, 0, targetWidth, targetHeight);
+        context.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
+
+        resolve(canvas.toDataURL("image/jpeg", 0.92));
+      };
+
+      image.onerror = () => reject(new Error("Cannot read selected image."));
+      image.src = reader.result;
+    };
+
+    reader.onerror = () => reject(new Error("Cannot load image file."));
+    reader.readAsDataURL(file);
   });
 }
 

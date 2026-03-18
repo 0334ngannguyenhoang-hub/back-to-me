@@ -44,6 +44,7 @@ body {
     font-family: "FPT Song Vui", sans-serif;
     background: url("../assets/images/background.png") center center / cover no-repeat fixed;
     text-align: center;
+    overflow-x: hidden;
 }
 
 /* RESPONSIVE */
@@ -59,28 +60,24 @@ body {
 
 }
 
-@media (max-width: 768px) {
-
-    .decor {
-        display: none;
-    }
+@media (max-width: 900px) {
 
     .title {
-        font-size: 38px;
+        font-size: 52px;
     }
 
     .subtitle {
-        font-size: 14px;
+        font-size: 15px;
     }
 
     .memory-box {
-        width: 120%;
-        transform: translateY(50px);
+        width: min(118vw, 500px);
+        transform: translateY(28px);
     }
 
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
 
     .demo-cards {
         flex-direction: column;
@@ -90,4 +87,14 @@ body {
         flex-direction: column;
     }
 
+}
+
+@media (max-width: 480px) {
+    body {
+        background-attachment: scroll;
+    }
+
+    .title {
+        font-size: 44px;
+    }
 }

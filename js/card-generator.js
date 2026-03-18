@@ -43,6 +43,12 @@ function readSelectedFile(id) {
   return input && input.files && input.files[0] ? input.files[0] : null;
 }
 
+function getImageSource(id) {
+  const element = document.getElementById(id);
+  const src = element ? element.getAttribute("src") || "" : "";
+  return src.trim();
+}
+
 function collectCardData() {
   return {
     adultName: readTrimmedValue("adultNameInput"),
@@ -57,6 +63,8 @@ function collectCardData() {
     childLifeUpdate: readTrimmedValue("childLifeUpdateInput"),
     childSuper: readTrimmedValue("childSuperInput"),
     childIssues: readTrimmedValue("childIssuesInput"),
+    adultImg: getImageSource("previewAdultImg"),
+    childImg: getImageSource("previewChildImg"),
     createdAt: new Date().toISOString()
   };
 }
@@ -64,10 +72,10 @@ function collectCardData() {
 function validateCardData(data, files) {
   const missing = [];
 
-  if (!files.adultImage) missing.push({ id: "adultImage", label: "ảnh hiện tại" });
+  if (!files.adultImage || !data.adultImg) missing.push({ id: "adultImage", label: "ảnh hiện tại" });
   if (!data.adultName) missing.push({ id: "adultNameInput", label: "tên hiện tại" });
   if (!data.adultAge) missing.push({ id: "adultAgeInput", label: "tuổi hiện tại" });
-  if (!files.childImage) missing.push({ id: "childImage", label: "ảnh hồi bé" });
+  if (!files.childImage || !data.childImg) missing.push({ id: "childImage", label: "ảnh hồi bé" });
   if (!data.childName) missing.push({ id: "childNameInput", label: "tên hồi bé" });
   if (!data.childAge) missing.push({ id: "childAgeInput", label: "tuổi hồi bé" });
 
@@ -183,13 +191,17 @@ async function generateCard() {
     await saveCardPayload({
       ...data,
       adultImageBlob: files.adultImage,
-      childImageBlob: files.childImage
+      childImageBlob: files.childImage,
+      adultRenderUrl: data.adultImg,
+      childRenderUrl: data.childImg
     });
 
     localStorage.setItem(
       CARD_DATA_KEY,
       JSON.stringify({
         ...data,
+        adultRenderUrl: data.adultImg,
+        childRenderUrl: data.childImg,
         hasIndexedImages: true
       })
     );

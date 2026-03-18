@@ -142,3 +142,39 @@ button:disabled {
     transform: none;
     box-shadow: none;
 }
+
+@media (max-width: 900px) {
+    .information {
+        padding: 28px 20px 56px;
+    }
+
+    .section-label {
+        font-size: 22px;
+        margin-bottom: 16px;
+    }
+
+    .form-container {
+        gap: 26px;
+        margin-bottom: 42px;
+    }
+
+    .form-block {
+        width: min(86vw, 320px);
+    }
+
+    .form-block input {
+        width: 100%;
+    }
+
+    .form-details p {
+        font-size: 15px;
+        line-height: 1.35;
+    }
+
+    .form-helper {
+        width: min(86vw, 320px);
+        margin-top: 0;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+}

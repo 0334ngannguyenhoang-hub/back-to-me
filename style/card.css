@@ -11,11 +11,13 @@
 /* ================= CARD ================= */
 
 .card-side{
+    --card-width: 520px;
+    --card-scale: 1;
     position:sticky;
     top: 40px;
     align-self: flex-start;
-    width:520px;
-    height:300px;
+    width:var(--card-width);
+    height:calc(var(--card-width) * 300 / 520);
 
     border-radius:24px;
     overflow:hidden;
@@ -27,11 +29,13 @@
 }
 
 .card-side-1{
+    --card-width: 520px;
+    --card-scale: 1;
     position:sticky;
     top: 40px;
     align-self: flex-start;
-    width:520px;
-    height:300px;
+    width:var(--card-width);
+    height:calc(var(--card-width) * 300 / 520);
 
     border-radius:24px;
     overflow:hidden;
@@ -268,10 +272,10 @@
 
     position:absolute;
 
-    bottom:-40px;
-    left:170px;
+    bottom:calc(-40px * var(--card-scale));
+    left:calc(170px * var(--card-scale));
 
-    width:270px;
+    width:calc(270px * var(--card-scale));
 
     opacity:0.9;
 
@@ -286,10 +290,12 @@
     gap: 10px;
 
     contain: content;
-    margin-top: 20px;
-    margin-left: 22px;
-    margin-right: 20px;
-    margin-bottom: 20px
+    margin-top: calc(20px * var(--card-scale));
+    margin-left: calc(22px * var(--card-scale));
+    margin-right: calc(20px * var(--card-scale));
+    margin-bottom: calc(20px * var(--card-scale));
+    transform: scale(var(--card-scale));
+    transform-origin: top left;
 }
 
 .card-title-text {
@@ -311,5 +317,27 @@
     align-items: center;
     width: 190px;
     height: 270px;
+}
+
+@media (max-width: 900px) {
+    .card-side,
+    .card-side-1 {
+        --card-width: 340px;
+        --card-scale: 0.653846;
+        position: relative;
+        top: 0;
+    }
+
+    .card-info {
+        margin-right: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .card-side,
+    .card-side-1 {
+        --card-width: 300px;
+        --card-scale: 0.576923;
+    }
 }
 

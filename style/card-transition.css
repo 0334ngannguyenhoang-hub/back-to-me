@@ -1,11 +1,13 @@
 /* ================= CARD CONTAINER ================= */
 
 .card-output {
+    --card-width: 520px;
+    --card-scale: 1;
     margin: 80px auto;
     position: relative;
 
-    width: 520px;
-    height: 300px;
+    width: var(--card-width);
+    height: calc(var(--card-width) * 300 / 520);
 }
 
 /* ================= CARD ================= */
@@ -15,8 +17,8 @@
     top: 0;
     left: 0;
 
-    width: 520px;
-    height: 300px;
+    width: var(--card-width);
+    height: calc(var(--card-width) * 300 / 520);
 
     border-radius: 24px;
     overflow: hidden;
@@ -34,8 +36,8 @@
     top: 0;
     left: 0;
     ;
-    width: 520px;
-    height: 300px;
+    width: var(--card-width);
+    height: calc(var(--card-width) * 300 / 520);
 
     border-radius: 24px;
     overflow: hidden;
@@ -276,10 +278,10 @@
 
     position: absolute;
 
-    bottom: -40px;
-    left: 170px;
+    bottom: calc(-40px * var(--card-scale));
+    left: calc(170px * var(--card-scale));
 
-    width: 270px;
+    width: calc(270px * var(--card-scale));
 
     opacity: 0.9;
 
@@ -294,10 +296,12 @@
     gap: 10px;
 
     contain: content;
-    margin-top: 20px;
-    margin-left: 22px;
-    margin-right: 20px;
-    margin-bottom: 20px
+    margin-top: calc(20px * var(--card-scale));
+    margin-left: calc(22px * var(--card-scale));
+    margin-right: calc(20px * var(--card-scale));
+    margin-bottom: calc(20px * var(--card-scale));
+    transform: scale(var(--card-scale));
+    transform-origin: top left;
 }
 
 .card-title-text {
@@ -326,8 +330,8 @@
 
 .card-output{
     position:relative;
-    width:520px;
-    height:300px;
+    width:var(--card-width);
+    height:calc(var(--card-width) * 300 / 520);
     margin:80px auto;
 }
 
@@ -370,8 +374,8 @@
     top:0;
     left:0;
 
-    width:520px;
-    height:300px;
+    width:var(--card-width);
+    height:calc(var(--card-width) * 300 / 520);
 
     transition:opacity 1.45s cubic-bezier(.22,1,.36,1);
 
@@ -398,4 +402,19 @@
 
 .card-output.active .card-side-1{
     opacity:1;
+}
+
+@media (max-width: 900px) {
+    .card-output {
+        --card-width: 340px;
+        --card-scale: 0.653846;
+        margin: 36px auto 24px;
+    }
+}
+
+@media (max-width: 480px) {
+    .card-output {
+        --card-width: 300px;
+        --card-scale: 0.576923;
+    }
 }
