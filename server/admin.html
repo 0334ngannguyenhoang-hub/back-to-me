@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Back To Me Admin</title>
+  <style>
+    :root {
+      --bg: #f6efe7;
+      --panel: #fffaf5;
+      --ink: #4a2c1e;
+      --accent: #c94b1b;
+      --line: rgba(74, 44, 30, 0.14);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    .wrap {
+      width: min(1200px, 94vw);
+      margin: 24px auto 48px;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    input, button {
+      font: inherit;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      padding: 10px 14px;
+    }
+    button {
+      cursor: pointer;
+      background: var(--accent);
+      color: white;
+      border: none;
+      font-weight: 700;
+    }
+    .stats {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px 18px;
+      margin-bottom: 18px;
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .table-wrap {
+      overflow: auto;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 980px;
+    }
+    th, td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      position: sticky;
+      top: 0;
+      background: #fff3e8;
+      z-index: 1;
+    }
+    img.thumb {
+      width: 96px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      display: block;
+    }
+    .muted {
+      color: rgba(74, 44, 30, 0.7);
+      font-size: 14px;
+    }
+    .empty {
+      padding: 28px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div>
+        <h1>Back To Me Admin</h1>
+        <div class="muted">Xem submission, mở ảnh và tải CSV cho Excel.</div>
+      </div>
+      <div class="actions">
+        <input id="searchInput" type="search" placeholder="Tìm theo tên hoặc nghề..." />
+        <button id="refreshButton" type="button">Làm mới</button>
+        <button id="exportButton" type="button">Tải CSV</button>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div><strong id="countValue">0</strong> submissions</div>
+      <div class="muted" id="statusText">Đang tải dữ liệu...</div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Thời gian</th>
+            <th>Người lớn</th>
+            <th>Hồi bé</th>
+            <th>Ảnh người lớn</th>
+            <th>Ảnh hồi bé</th>
+            <th>Mã</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr><td class="empty" colspan="6">Đang tải...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const searchInput = document.getElementById("searchInput");
+    const refreshButton = document.getElementById("refreshButton");
+    const exportButton = document.getElementById("exportButton");
+    const countValue = document.getElementById("countValue");
+    const statusText = document.getElementById("statusText");
+    const tableBody = document.getElementById("tableBody");
+    const adminToken = new URLSearchParams(window.location.search).get("token") || "";
+
+    function withToken(url) {
+      if (!adminToken) return url;
+      const nextUrl = new URL(url, window.location.origin);
+      nextUrl.searchParams.set("token", adminToken);
+      return nextUrl.toString();
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function formatCardInfo(prefix, row) {
+      const labels = {
+        adult: [
+          ["Tên", row.adult_name],
+          ["Tuổi", row.adult_age],
+          ["Công việc", row.adult_job],
+          ["Life Update", row.adult_life_update],
+          ["Superpower", row.adult_super],
+          ["Current Issues", row.adult_issues]
+        ],
+        child: [
+          ["Tên", row.child_name],
+          ["Tuổi", row.child_age],
+          ["Dream Job", row.child_dream],
+          ["Life Update", row.child_life_update],
+          ["Superpower", row.child_super],
+          ["Current Issues", row.child_issues]
+        ]
+      };
+
+      return labels[prefix]
+        .map(([label, value]) => `<div><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value || "-")}</div>`)
+        .join("");
+    }
+
+    async function loadRows() {
+      statusText.textContent = "Đang tải dữ liệu...";
+      const search = searchInput.value.trim();
+      const listUrl = new URL(withToken("/api/submissions"), window.location.origin);
+      if (search) listUrl.searchParams.set("search", search);
+      listUrl.searchParams.set("limit", "200");
+
+      const [rowsResponse, countResponse] = await Promise.all([
+        fetch(listUrl.toString()),
+        fetch(withToken("/api/submissions/count"))
+      ]);
+
+      const rowsPayload = await rowsResponse.json();
+      const countPayload = await countResponse.json();
+
+      if (!rowsResponse.ok) throw new Error(rowsPayload.error || "Cannot load rows.");
+      if (!countResponse.ok) throw new Error(countPayload.error || "Cannot load count.");
+
+      countValue.textContent = countPayload.total || 0;
+      statusText.textContent = search ? `Đang lọc theo: ${search}` : "Hiển thị submission mới nhất";
+
+      if (!rowsPayload.rows || rowsPayload.rows.length === 0) {
+        tableBody.innerHTML = '<tr><td class="empty" colspan="6">Chưa có submission nào.</td></tr>';
+        return;
+      }
+
+      tableBody.innerHTML = rowsPayload.rows.map((row) => `
+        <tr>
+          <td>${escapeHtml(row.created_at)}</td>
+          <td>${formatCardInfo("adult", row)}</td>
+          <td>${formatCardInfo("child", row)}</td>
+          <td><a href="${escapeHtml(row.adult_card_path)}" target="_blank" rel="noreferrer"><img class="thumb" src="${escapeHtml(row.adult_card_path)}" alt="" /></a></td>
+          <td><a href="${escapeHtml(row.child_card_path)}" target="_blank" rel="noreferrer"><img class="thumb" src="${escapeHtml(row.child_card_path)}" alt="" /></a></td>
+          <td><code>${escapeHtml(row.id)}</code></td>
+        </tr>
+      `).join("");
+    }
+
+    refreshButton.addEventListener("click", () => {
+      loadRows().catch((error) => {
+        statusText.textContent = error.message;
+      });
+    });
+
+    searchInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        loadRows().catch((error) => {
+          statusText.textContent = error.message;
+        });
+      }
+    });
+
+    exportButton.addEventListener("click", () => {
+      window.open(withToken("/api/submissions/export.csv"), "_blank");
+    });
+
+    loadRows().catch((error) => {
+      statusText.textContent = error.message;
+      tableBody.innerHTML = `<tr><td class="empty" colspan="6">${escapeHtml(error.message)}</td></tr>`;
+    });
+  </script>
+</body>
+</html>

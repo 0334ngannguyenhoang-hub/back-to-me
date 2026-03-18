@@ -1,0 +1,10 @@
+{
+  "name": "back-to-me",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server/index.mjs",
+    "start:backend": "node server/index.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "

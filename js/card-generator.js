@@ -1,4 +1,9 @@
 const CARD_DATA_KEY = "cardData";
+const API_BASE_URL =
+  window.BACK_TO_ME_API_BASE_URL ||
+  ((window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost")
+    ? "http://127.0.0.1:8000"
+    : window.location.origin);
 const CARD_DB_NAME = "backToMeDemo";
 const CARD_STORE_NAME = "cards";
 const CARD_RECORD_KEY = "latestCard";
@@ -43,6 +48,14 @@ function readSelectedFile(id) {
   return input && input.files && input.files[0] ? input.files[0] : null;
 }
 
+function createSubmissionId() {
+  if (window.crypto && typeof window.crypto.randomUUID === "function") {
+    return window.crypto.randomUUID();
+  }
+
+  return `submission-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 function getImageSource(id) {
   const element = document.getElementById(id);
   const src = element ? element.getAttribute("src") || "" : "";
@@ -51,6 +64,7 @@ function getImageSource(id) {
 
 function collectCardData() {
   return {
+    submissionId: createSubmissionId(),
     adultName: readTrimmedValue("adultNameInput"),
     adultAge: readTrimmedValue("adultAgeInput"),
     adultJob: readTrimmedValue("adultJobInput"),
@@ -149,6 +163,28 @@ async function loadCardPayload() {
 }
 
 window.loadCardPayload = loadCardPayload;
+
+function safeReadLocalCardData() {
+  try {
+    return JSON.parse(localStorage.getItem(CARD_DATA_KEY));
+  } catch (error) {
+    console.error("Cannot read local card data.", error);
+    return null;
+  }
+}
+
+function updateStoredCardData(patch) {
+  const existing = safeReadLocalCardData();
+  if (!existing) return;
+
+  localStorage.setItem(
+    CARD_DATA_KEY,
+    JSON.stringify({
+      ...existing,
+      ...patch
+    })
+  );
+}
 
 async function generateCard() {
   const messageEl = document.getElementById("formMessage");
@@ -329,6 +365,51 @@ function download(canvas, filename) {
   link.click();
 }
 
+function canvasToBlob(canvas) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        reject(new Error("Cannot convert canvas to blob."));
+        return;
+      }
+      resolve(blob);
+    }, "image/png");
+  });
+}
+
+async function uploadGeneratedCardsOnce(adultCanvas, childCanvas) {
+  const cardData = safeReadLocalCardData();
+
+  if (!cardData || !cardData.submissionId) return { skipped: true, reason: "missing-card-data" };
+  if (cardData.backendUploadedAt) return { skipped: true, reason: "already-uploaded" };
+
+  const adultBlob = await canvasToBlob(adultCanvas);
+  const childBlob = await canvasToBlob(childCanvas);
+
+  const formData = new FormData();
+  formData.append("metadata", JSON.stringify(cardData));
+  formData.append("adultCard", adultBlob, "adult-card.png");
+  formData.append("childCard", childBlob, "child-card.png");
+
+  const response = await fetch(`${API_BASE_URL}/api/submissions`, {
+    method: "POST",
+    body: formData
+  });
+
+  if (!response.ok) {
+    throw new Error(`Upload failed with status ${response.status}`);
+  }
+
+  const payload = await response.json();
+
+  updateStoredCardData({
+    backendUploadedAt: new Date().toISOString(),
+    backendSubmissionId: payload.submissionId || cardData.submissionId
+  });
+
+  return payload;
+}
+
 function canExportCards() {
   const adultImg = document.getElementById("adultImg");
   const childImg = document.getElementById("childImg");
@@ -369,6 +450,7 @@ async function downloadCards() {
 
   try {
     await waitForImages(document.body);
+    let uploadSynced = true;
 
     showCardFace("adult");
     await wait(400);
@@ -394,8 +476,21 @@ async function downloadCards() {
       logging: false
     });
 
+    try {
+      await uploadGeneratedCardsOnce(canvas1, canvas2);
+    } catch (uploadError) {
+      uploadSynced = false;
+      console.error("Cannot sync generated cards to backend.", uploadError);
+      setProductMessage(
+        "Ảnh đã tải về được, nhưng chưa đồng bộ lên hệ thống in quà. Bạn kiểm tra backend rồi tải lại một lần nữa nhé.",
+        "is-error"
+      );
+    }
+
     download(canvas2, "nguEch-card-2.png");
-    setProductMessage("Đã xuất xong 2 ảnh PNG. Bạn kiểm tra thư mục tải xuống nhé.", "is-success");
+    if (uploadSynced) {
+      setProductMessage("Đã xuất xong 2 ảnh PNG. Nếu backend đang bật, hệ thống cũng đã lưu lại bản in của bạn.", "is-success");
+    }
   } catch (error) {
     console.error("Cannot export PNG cards.", error);
     setProductMessage("Xuất PNG chưa thành công. Bạn thử lại sau khi ảnh tải xong hoàn toàn nhé.", "is-error");
