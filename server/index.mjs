@@ -625,4 +625,50 @@ const server = createServer(async (request, response) => {
   }
 
   if (request.method === "GET" && url.pathname === "/api/submissions") {
-    await handleSu
+    await handleSubmissionsList(url, request, response);
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/submissions/export.csv") {
+    if (!requireAdmin(url, request, response)) return;
+
+    const csvContent = createCsvContent(await database.exportRows());
+    text(response, 200, csvContent, {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="back-to-me-submissions.csv"`
+    });
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/submissions/count") {
+    if (!requireAdmin(url, request, response)) return;
+
+    const total = await database.countSubmissions();
+    json(response, 200, { ok: true, total });
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/submissions") {
+    await handleSubmission(request, response);
+    return;
+  }
+
+  if (request.method === "GET" && STORAGE_DRIVER === "local" && url.pathname.startsWith("/storage/")) {
+    await serveLocalStorageFile(url, response);
+    return;
+  }
+
+  if (request.method === "GET") {
+    const served = await serveStaticFile(url, response);
+    if (served) return;
+  }
+
+  json(response, 404, { ok: false, error: "NOT_FOUND" });
+});
+
+server.listen(PORT, HOST, () => {
+  console.log(`Back To Me backend running at http://${HOST}:${PORT}`);
+  console.log(`Admin page: http://127.0.0.1:${PORT}/admin`);
+  console.log(`Database driver: ${DATABASE_DRIVER}`);
+  console.log(`Storage driver: ${STORAGE_DRIVER}`);
+});
