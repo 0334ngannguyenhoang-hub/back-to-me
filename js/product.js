@@ -17,11 +17,24 @@ function fillImage(id, value) {
   const element = document.getElementById(id);
   if (!element) return;
 
-  if (value) {
-    element.src = value;
-  } else {
-    element.removeAttribute("src");
+  if (element.dataset.objectUrl) {
+    URL.revokeObjectURL(element.dataset.objectUrl);
+    delete element.dataset.objectUrl;
   }
+
+  if (!value) {
+    element.removeAttribute("src");
+    return;
+  }
+
+  if (value instanceof Blob) {
+    const objectUrl = URL.createObjectURL(value);
+    element.src = objectUrl;
+    element.dataset.objectUrl = objectUrl;
+    return;
+  }
+
+  element.src = value;
 }
 
 function showProductEmptyState() {
@@ -36,8 +49,21 @@ function showProductEmptyState() {
   if (footer) footer.hidden = true;
 }
 
-function loadCardData() {
-  const data = safeReadCardData();
+async function getCardDataForProduct() {
+  if (typeof window.loadCardPayload === "function") {
+    try {
+      const payload = await window.loadCardPayload();
+      if (payload) return payload;
+    } catch (error) {
+      console.error("Cannot read card payload from IndexedDB.", error);
+    }
+  }
+
+  return safeReadCardData();
+}
+
+async function loadCardData() {
+  const data = await getCardDataForProduct();
 
   if (!data || !data.adultName || !data.childName) {
     showProductEmptyState();
@@ -58,8 +84,10 @@ function loadCardData() {
   fillText("childSuper", data.childSuper);
   fillText("childIssues", data.childIssues);
 
-  fillImage("adultImg", data.adultImg);
-  fillImage("childImg", data.childImg);
+  fillImage("adultImg", data.adultImageBlob || data.adultImg);
+  fillImage("childImg", data.childImageBlob || data.childImg);
 }
 
-document.addEventListener("DOMContentLoaded", loadCardData);
+document.addEventListener("DOMContentLoaded", () => {
+  loadCardData();
+});

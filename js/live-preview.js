@@ -21,16 +21,20 @@ function updateImagePreview(inputId, imgId) {
 
   input.addEventListener("change", () => {
     const file = input.files && input.files[0];
+
+    if (img.dataset.objectUrl) {
+      URL.revokeObjectURL(img.dataset.objectUrl);
+      delete img.dataset.objectUrl;
+    }
+
     if (!file) {
       img.removeAttribute("src");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      img.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
+    const objectUrl = URL.createObjectURL(file);
+    img.src = objectUrl;
+    img.dataset.objectUrl = objectUrl;
   });
 }
 

@@ -1,4 +1,7 @@
 const CARD_DATA_KEY = "cardData";
+const CARD_DB_NAME = "backToMeDemo";
+const CARD_STORE_NAME = "cards";
+const CARD_RECORD_KEY = "latestCard";
 
 function setMessage(element, message, type) {
   if (!element) return;
@@ -35,10 +38,9 @@ function readTrimmedValue(id) {
   return element ? element.value.trim() : "";
 }
 
-function getImageSource(id) {
-  const element = document.getElementById(id);
-  const src = element ? element.getAttribute("src") || "" : "";
-  return src.trim();
+function readSelectedFile(id) {
+  const input = document.getElementById(id);
+  return input && input.files && input.files[0] ? input.files[0] : null;
 }
 
 function collectCardData() {
@@ -55,19 +57,17 @@ function collectCardData() {
     childLifeUpdate: readTrimmedValue("childLifeUpdateInput"),
     childSuper: readTrimmedValue("childSuperInput"),
     childIssues: readTrimmedValue("childIssuesInput"),
-    adultImg: getImageSource("previewAdultImg"),
-    childImg: getImageSource("previewChildImg"),
     createdAt: new Date().toISOString()
   };
 }
 
-function validateCardData(data) {
+function validateCardData(data, files) {
   const missing = [];
 
-  if (!data.adultImg) missing.push({ id: "adultImage", label: "ảnh hiện tại" });
+  if (!files.adultImage) missing.push({ id: "adultImage", label: "ảnh hiện tại" });
   if (!data.adultName) missing.push({ id: "adultNameInput", label: "tên hiện tại" });
   if (!data.adultAge) missing.push({ id: "adultAgeInput", label: "tuổi hiện tại" });
-  if (!data.childImg) missing.push({ id: "childImage", label: "ảnh hồi bé" });
+  if (!files.childImage) missing.push({ id: "childImage", label: "ảnh hồi bé" });
   if (!data.childName) missing.push({ id: "childNameInput", label: "tên hồi bé" });
   if (!data.childAge) missing.push({ id: "childAgeInput", label: "tuổi hồi bé" });
 
@@ -81,15 +81,80 @@ function toggleButtonState(button, isDisabled, idleLabel, loadingLabel) {
   button.textContent = isDisabled ? loadingLabel : idleLabel;
 }
 
-function generateCard() {
+function openCardDatabase() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(CARD_DB_NAME, 1);
+
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(CARD_STORE_NAME)) {
+        db.createObjectStore(CARD_STORE_NAME);
+      }
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function saveCardPayload(payload) {
+  const db = await openCardDatabase();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(CARD_STORE_NAME, "readwrite");
+    const store = transaction.objectStore(CARD_STORE_NAME);
+
+    store.put(payload, CARD_RECORD_KEY);
+
+    transaction.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+    transaction.onerror = () => {
+      db.close();
+      reject(transaction.error);
+    };
+    transaction.onabort = () => {
+      db.close();
+      reject(transaction.error || new Error("Card storage aborted."));
+    };
+  });
+}
+
+async function loadCardPayload() {
+  const db = await openCardDatabase();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(CARD_STORE_NAME, "readonly");
+    const store = transaction.objectStore(CARD_STORE_NAME);
+    const request = store.get(CARD_RECORD_KEY);
+
+    request.onsuccess = () => {
+      db.close();
+      resolve(request.result || null);
+    };
+    request.onerror = () => {
+      db.close();
+      reject(request.error);
+    };
+  });
+}
+
+window.loadCardPayload = loadCardPayload;
+
+async function generateCard() {
   const messageEl = document.getElementById("formMessage");
   const button = document.getElementById("generateButton");
 
   clearValidationState();
   setMessage(messageEl, "", "");
 
+  const files = {
+    adultImage: readSelectedFile("adultImage"),
+    childImage: readSelectedFile("childImage")
+  };
   const data = collectCardData();
-  const missing = validateCardData(data);
+  const missing = validateCardData(data, files);
 
   if (missing.length > 0) {
     missing.forEach(({ id }) => setInputInvalid(id, true));
@@ -108,16 +173,33 @@ function generateCard() {
   }
 
   toggleButtonState(button, true, "Tạo card của bạn", "Đang tạo card...");
-  setMessage(messageEl, "Đang chuẩn bị dữ liệu và chuyển sang trang kết quả...", "is-loading");
+  setMessage(
+    messageEl,
+    "Đang lưu dữ liệu card. Với ảnh dung lượng lớn, bước này có thể mất thêm vài giây...",
+    "is-loading"
+  );
 
   try {
-    localStorage.setItem(CARD_DATA_KEY, JSON.stringify(data));
+    await saveCardPayload({
+      ...data,
+      adultImageBlob: files.adultImage,
+      childImageBlob: files.childImage
+    });
+
+    localStorage.setItem(
+      CARD_DATA_KEY,
+      JSON.stringify({
+        ...data,
+        hasIndexedImages: true
+      })
+    );
+
     window.location.href = "product.html";
   } catch (error) {
     console.error("Cannot save card data.", error);
     setMessage(
       messageEl,
-      "Không thể lưu card trong trình duyệt. Bạn thử giảm dung lượng ảnh rồi tạo lại nhé.",
+      "Không thể lưu card trong trình duyệt. Bạn thử lại hoặc dùng ảnh nhẹ hơn một chút nhé.",
       "is-error"
     );
     toggleButtonState(button, false, "Tạo card của bạn", "Đang tạo card...");
@@ -236,15 +318,10 @@ function download(canvas, filename) {
 }
 
 function canExportCards() {
-  const data = (() => {
-    try {
-      return JSON.parse(localStorage.getItem(CARD_DATA_KEY));
-    } catch (error) {
-      return null;
-    }
-  })();
+  const adultImg = document.getElementById("adultImg");
+  const childImg = document.getElementById("childImg");
 
-  if (!data || !data.adultImg || !data.childImg) {
+  if (!adultImg || !childImg || !adultImg.getAttribute("src") || !childImg.getAttribute("src")) {
     setProductMessage("Thiếu dữ liệu ảnh để xuất file. Bạn hãy quay lại tạo card lại nhé.", "is-error");
     return false;
   }
@@ -273,6 +350,7 @@ async function downloadCards() {
   const { card1, card2 } = getCardSides();
   const { pngButton } = getProductButtons();
   const previousState = captureCardState();
+  const exportScale = Math.max(3, Math.min(5, Math.ceil((window.devicePixelRatio || 1) * 2)));
 
   setDownloadButtonsDisabled(true, pngButton);
   setProductMessage("Đang chụp 2 mặt card ở chất lượng cao...", "is-loading");
@@ -281,12 +359,14 @@ async function downloadCards() {
     await waitForImages(document.body);
 
     showCardFace("adult");
-    await wait(350);
+    await wait(400);
 
     const canvas1 = await html2canvas(card1, {
-      scale: 3,
+      scale: exportScale,
       useCORS: true,
-      backgroundColor: "#ffffff"
+      backgroundColor: "#ffffff",
+      imageTimeout: 0,
+      logging: false
     });
 
     download(canvas1, "nguEch-card-1.png");
@@ -295,16 +375,18 @@ async function downloadCards() {
     await wait(1600);
 
     const canvas2 = await html2canvas(card2, {
-      scale: 3,
+      scale: exportScale,
       useCORS: true,
-      backgroundColor: "#ffffff"
+      backgroundColor: "#ffffff",
+      imageTimeout: 0,
+      logging: false
     });
 
     download(canvas2, "nguEch-card-2.png");
     setProductMessage("Đã xuất xong 2 ảnh PNG. Bạn kiểm tra thư mục tải xuống nhé.", "is-success");
   } catch (error) {
     console.error("Cannot export PNG cards.", error);
-    setProductMessage("Xuất PNG chưa thành công. Bạn thử lại sau khi đợi ảnh tải xong nhé.", "is-error");
+    setProductMessage("Xuất PNG chưa thành công. Bạn thử lại sau khi ảnh tải xong hoàn toàn nhé.", "is-error");
   } finally {
     resetCardFace();
     restoreCardState(previousState);
@@ -341,7 +423,9 @@ async function downloadGIF() {
       const canvas = await html2canvas(container, {
         scale: 2,
         useCORS: true,
-        backgroundColor: null
+        backgroundColor: null,
+        imageTimeout: 0,
+        logging: false
       });
 
       const resized = document.createElement("canvas");

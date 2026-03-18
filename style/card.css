@@ -146,8 +146,13 @@
 .photo-adult{
     width:140px;
     height:170px;
+    min-width:140px;
+    min-height:170px;
 
     object-fit:cover;
+    object-position:center center;
+    flex-shrink:0;
+    background:rgba(255,255,255,0.65);
 
     transform:rotate(-4deg);
 
