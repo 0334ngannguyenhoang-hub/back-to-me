@@ -55,7 +55,7 @@ body {
     }
 
     .title {
-        font-size: 48px;
+        font-size: 58px;
     }
 
 }
@@ -63,7 +63,7 @@ body {
 @media (max-width: 900px) {
 
     .title {
-        font-size: 52px;
+        font-size: 64px;
     }
 
     .subtitle {
@@ -95,6 +95,6 @@ body {
     }
 
     .title {
-        font-size: 44px;
+        font-size: 54px;
     }
 }
