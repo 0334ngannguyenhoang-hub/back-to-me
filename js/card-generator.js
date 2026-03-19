@@ -365,6 +365,39 @@ function download(canvas, filename) {
   link.click();
 }
 
+function getDownloadTrayElements() {
+  return {
+    tray: document.getElementById("downloadTray"),
+    links: document.getElementById("downloadLinks")
+  };
+}
+
+function clearDownloadTray() {
+  const { tray, links } = getDownloadTrayElements();
+  if (!tray || !links) return;
+
+  links.innerHTML = "";
+  tray.hidden = true;
+}
+
+function setDownloadTray(items) {
+  const { tray, links } = getDownloadTrayElements();
+  if (!tray || !links) return;
+
+  links.innerHTML = "";
+
+  items.forEach((item) => {
+    const link = document.createElement("a");
+    link.className = `download-link ${item.className || ""}`.trim();
+    link.href = item.href;
+    link.download = item.filename;
+    link.textContent = item.label;
+    links.appendChild(link);
+  });
+
+  tray.hidden = items.length === 0;
+}
+
 function canvasToBlob(canvas) {
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
@@ -445,6 +478,7 @@ async function downloadCards() {
   const previousState = captureCardState();
   const exportScale = Math.max(3, Math.min(5, Math.ceil((window.devicePixelRatio || 1) * 2)));
 
+  clearDownloadTray();
   setDownloadButtonsDisabled(true, pngButton);
   setProductMessage("Đang chụp 2 mặt card ở chất lượng cao...", "is-loading");
 
@@ -487,13 +521,45 @@ async function downloadCards() {
       );
     }
 
-    download(canvas2, "nguEch-card-2.png");
+    const downloadItems = [
+      {
+        href: canvas1.toDataURL("image/png"),
+        filename: "nguEch-card-1.png",
+        label: "Tải ảnh hiện tại",
+        className: "is-adult"
+      },
+      {
+        href: canvas2.toDataURL("image/png"),
+        filename: "nguEch-card-2.png",
+        label: "Tải ảnh hồi bé",
+        className: "is-child"
+      }
+    ];
+
+    setDownloadTray(downloadItems);
+
+    const downloadLinks = Array.from(document.querySelectorAll("#downloadLinks a"));
+    if (downloadLinks[0]) {
+      downloadLinks[0].click();
+    }
+    if (downloadLinks[1]) {
+      setTimeout(() => downloadLinks[1].click(), 180);
+    }
+
     if (uploadSynced) {
-      setProductMessage("Đã xuất xong 2 ảnh PNG. Nếu backend đang bật, hệ thống cũng đã lưu lại bản in của bạn.", "is-success");
+      setProductMessage(
+        "Hệ thống đang tải 2 ảnh PNG. Nếu trình duyệt chặn một ảnh, bạn bấm nút còn lại ngay bên dưới nhé. Bản in cũng đã được lưu lên hệ thống.",
+        "is-success"
+      );
+    } else {
+      setProductMessage(
+        "Hệ thống đang tải 2 ảnh PNG. Nếu trình duyệt chặn một ảnh, bạn bấm nút còn lại ngay bên dưới nhé.",
+        "is-success"
+      );
     }
   } catch (error) {
     console.error("Cannot export PNG cards.", error);
-    setProductMessage("Xuất PNG chưa thành công. Bạn thử lại sau khi ảnh tải xong hoàn toàn nhé.", "is-error");
+    setProductMessage("Tải 2 ảnh PNG chưa thành công. Bạn thử lại sau khi ảnh tải xong hoàn toàn nhé.", "is-error");
   } finally {
     resetCardFace();
     restoreCardState(previousState);

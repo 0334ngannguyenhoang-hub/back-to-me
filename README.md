@@ -79,7 +79,20 @@ Render docs mình dùng tham chiếu:
 
 ## Admin
 
-Nếu có `ADMIN_TOKEN`, mở admin bằng:
+Mặc định admin đang mở công khai theo link:
+
+```text
+https://your-domain/admin
+```
+
+Nếu muốn khóa admin lại, bật:
+
+```env
+ADMIN_PROTECT=true
+ADMIN_TOKEN=your-secret-token
+```
+
+Khi đó mở bằng:
 
 ```text
 https://your-domain/admin?token=your-secret-token

@@ -19,6 +19,7 @@ const PROJECT_ROOT = path.dirname(__dirname);
 const DATABASE_DRIVER = process.env.DATABASE_DRIVER || "sqlite";
 const STORAGE_DRIVER = process.env.STORAGE_DRIVER || "local";
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "";
+const ADMIN_PROTECT = process.env.ADMIN_PROTECT === "true";
 const S3_BUCKET = process.env.S3_BUCKET || "";
 const S3_REGION = process.env.S3_REGION || "auto";
 const S3_ENDPOINT = process.env.S3_ENDPOINT || "";
@@ -33,6 +34,11 @@ await mkdir(DATA_ROOT, { recursive: true });
 const database = await createDatabaseAdapter();
 const storage = await createStorageAdapter();
 const adminHtml = await readFile(ADMIN_HTML_PATH, "utf8");
+
+function stripTrailingSlash(value) {
+  if (!value || value === "/") return "/";
+  return value.endsWith("/") ? value.slice(0, -1) : value;
+}
 
 async function createDatabaseAdapter() {
   if (DATABASE_DRIVER === "postgres") {
@@ -429,6 +435,7 @@ function normalizeSubmissionId(rawValue) {
 }
 
 function requireAdmin(url, request, response) {
+  if (!ADMIN_PROTECT) return true;
   if (!ADMIN_TOKEN) return true;
 
   const tokenFromQuery = url.searchParams.get("token") || "";
@@ -598,6 +605,7 @@ const server = createServer(async (request, response) => {
   }
 
   const url = new URL(request.url, `http://${request.headers.host || "127.0.0.1"}`);
+  const pathname = stripTrailingSlash(url.pathname);
 
   if (request.method === "OPTIONS") {
     response.writeHead(204, {
@@ -609,7 +617,7 @@ const server = createServer(async (request, response) => {
     return;
   }
 
-  if (request.method === "GET" && url.pathname === "/api/health") {
+  if (request.method === "GET" && pathname === "/api/health") {
     json(response, 200, {
       ok: true,
       service: "back-to-me-backend",
@@ -619,17 +627,17 @@ const server = createServer(async (request, response) => {
     return;
   }
 
-  if (request.method === "GET" && url.pathname === "/admin") {
+  if (request.method === "GET" && pathname === "/admin") {
     await handleAdminPage(url, request, response);
     return;
   }
 
-  if (request.method === "GET" && url.pathname === "/api/submissions") {
+  if (request.method === "GET" && pathname === "/api/submissions") {
     await handleSubmissionsList(url, request, response);
     return;
   }
 
-  if (request.method === "GET" && url.pathname === "/api/submissions/export.csv") {
+  if (request.method === "GET" && pathname === "/api/submissions/export.csv") {
     if (!requireAdmin(url, request, response)) return;
 
     const csvContent = createCsvContent(await database.exportRows());
@@ -640,7 +648,7 @@ const server = createServer(async (request, response) => {
     return;
   }
 
-  if (request.method === "GET" && url.pathname === "/api/submissions/count") {
+  if (request.method === "GET" && pathname === "/api/submissions/count") {
     if (!requireAdmin(url, request, response)) return;
 
     const total = await database.countSubmissions();
@@ -648,7 +656,7 @@ const server = createServer(async (request, response) => {
     return;
   }
 
-  if (request.method === "POST" && url.pathname === "/api/submissions") {
+  if (request.method === "POST" && pathname === "/api/submissions") {
     await handleSubmission(request, response);
     return;
   }

@@ -44,9 +44,12 @@ Backend hỗ trợ 2 mode:
 
 ## Admin Token
 
+Mặc định admin đang mở công khai.
+
 Nếu muốn khóa trang admin:
 
 ```bash
+set ADMIN_PROTECT=true
 set ADMIN_TOKEN=your-secret-token
 ```
 
