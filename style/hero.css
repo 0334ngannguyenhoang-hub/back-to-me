@@ -294,9 +294,9 @@
         padding-bottom: 190px;
     }
 
-    .title {
-        margin-top: 124px;
-        width: min(88vw, 320px);
+    .back-to-me-title {
+        margin-top: 230px;
+        width: min(88vw, 358px);
         font-size: clamp(60px, 18vw, 88px);
     }
 
@@ -314,49 +314,49 @@
     .hero-loaded .decor-1 {
         top: 26%;
         left: 12%;
-        width: 14%;
+        width: 19%;
     }
 
     .hero-loaded .decor-2 {
         top: 20%;
-        left: 41%;
-        width: 17%;
+        left: 35%;
+        width: 19%;
     }
 
     .hero-loaded .decor-3 {
-        top: 41%;
-        right: 8%;
-        width: 15%;
+        top: 24%;
+        left: 55%;
+        width: 19%;
     }
 
     .hero-loaded .decor-4 {
         top: 50%;
         left: 50%;
-        width: 15%;
+        width: 16%;
     }
 
     .hero-loaded .decor-5 {
         top: 46%;
         left: 72%;
-        width: 16%;
+        width: 19%;
     }
 
     .hero-loaded .decor-6 {
         top: 27%;
-        left: 79%;
-        width: 14%;
+        left: 75%;
+        width: 19%;
     }
 
     .hero-loaded .decor-7 {
         top: 46%;
         left: 9%;
-        width: 10%;
+        width: 12%;
     }
 
     .hero-loaded .decor-8 {
-        top: 52%;
+        top: 49%;
         left: 27%;
-        width: 16%;
+        width: 15%;
     }
 }
 
@@ -372,10 +372,9 @@
         margin-top: 18px;
     }
 
-    .title {
-        margin-top: 126px;
-        width: min(86vw, 300px);
-        font-size: clamp(56px, 18.5vw, 82px);
+    .back-to-me-title {
+        width: 160px;
+        margin-top: 16px;
     }
 
     .memory-box {
