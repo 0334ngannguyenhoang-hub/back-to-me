@@ -1,3 +1,6 @@
+body {
+    background: url("../assets/images/background.png") center center / cover no-repeat fixed;
+}
 .logo-product {
     width: 100px;
     margin-top: 10px;
@@ -174,6 +177,7 @@
     .product-heading-primary {
         font-size: 42px;
         line-height: 0.98;
+        margin-top: 80px;
     }
 
     .product-heading-secondary {
@@ -233,7 +237,8 @@
 
 @media (max-width: 480px) {
     .product-heading-primary {
-        font-size: 34px;
+        margin-top: 80px;
+        font-size: 30px;
     }
 
     .product-heading-secondary {
