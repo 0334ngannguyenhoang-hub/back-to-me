@@ -19,14 +19,14 @@
 .colorful span:nth-child(11) { color: #0fff57; }
 
 .info-title {
-    font-size: 40px;
-    margin-bottom: 40px;
-    letter-spacing: 4px;
+    width: 500px;
+    margin: 20px auto 0;
+    transform: translateY(-13px);  
 }
 
 .section-label {
     color: #B22200;
-    font-size: 30px;
+    font-size: 25px;
     margin-bottom: 20px;
 }
 

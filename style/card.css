@@ -91,7 +91,7 @@
 .card-present{
 
     font-family:"FPT Song Vui";
-    font-size:10px;
+    font-size:8px;
     font-weight:600;
 
     color:#B12301;
@@ -112,29 +112,7 @@
 /* title */
 
 .card-title{
-    font-family:"FPT Song Vui";
-    font-size:18px;
-    font-weight:700;
-
-    color:#B12301;
-
-    /* OUTLINE TRẮNG */
-    text-shadow:
-    -1px -1px 0 white,
-     1px -1px 0 white,
-    -1px  1px 0 white,
-     1px  1px 0 white,
-
-    -2px  0px 0 white,
-     2px  0px 0 white,
-     0px -2px 0 white,
-     0px  2px 0 white,
-
-    /* SHADOW */
-     0 3px 0 rgba(0,0,0,0.2);
-
-    margin-top:5px;
-    margin-bottom: 8px;
+  width: 198px;
 }
    
 /* logo */

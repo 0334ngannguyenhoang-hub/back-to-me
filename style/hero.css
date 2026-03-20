@@ -40,7 +40,6 @@
         opacity: 1;
     }
 }
-
 /* ================= MEMORY BOX ================= */
 
 .memory-box {
@@ -64,23 +63,11 @@
 
 /* ================= TITLE ================= */
 
-.title {
-    font-size: clamp(60px, 8vw, 118px);
-    font-weight: 700;
-    letter-spacing: 6px;
-    margin: 30px 0 5px;
-    text-shadow: 4px 4px 0 rgba(0, 0, 0, 0.2);
-    transform: translateY(30px);
+.back-to-me-title {
+    width: 480px;
+    margin: 20px auto 0;
+    transform: translateY(-13px);  
 }
-
-.title span {
-    filter: contrast(110%) saturate(110%);
-    text-shadow:
-        1px 1px 0 rgba(0,0,0,0.05),
-        2px 2px 0 rgba(0,0,0,0.03);
-    
-}
-
 .subtitle {
     font-size: clamp(14px, 1.2vw, 18px);
     color: #51301D;
@@ -104,17 +91,6 @@
         opacity: 1;
     }
 }
-
-.colorful span:nth-child(1) { color: #ff4b3e; }
-.colorful span:nth-child(2) { color: #2ecc71; }
-.colorful span:nth-child(3) { color: #f39c12; }
-.colorful span:nth-child(4) { color: #3498db; }
-
-.colorful span:nth-child(6) { color: #ff4b3e; }
-.colorful span:nth-child(7) { color: #2ecc71; }
-
-.colorful span:nth-child(9) { color: #f39c12; }
-.colorful span:nth-child(10) { color: #3498db; }
 /* ================= DECOR INITIAL STACK ================= */
 
 .decor {
