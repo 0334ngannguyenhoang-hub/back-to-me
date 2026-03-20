@@ -1,0 +1,105 @@
+:root {
+      --bg: #f6efe7;
+      --panel: #fffaf5;
+      --ink: #4a2c1e;
+      --accent: #c94b1b;
+      --line: rgba(74, 44, 30, 0.14);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    .wrap {
+      width: min(1200px, 94vw);
+      margin: 24px auto 48px;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    input, button {
+      font: inherit;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      padding: 10px 14px;
+    }
+button {
+      cursor: pointer;
+      background: var(--accent);
+      color: white;
+      border: none;
+      font-weight: 700;
+    }
+    button:hover {
+      filter: brightness(1.03);
+    }
+    .stats {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px 18px;
+      margin-bottom: 18px;
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .table-wrap {
+      overflow: auto;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 980px;
+    }
+    th, td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      position: sticky;
+      top: 0;
+      background: #fff3e8;
+      z-index: 1;
+    }
+    img.thumb {
+      width: 96px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      display: block;
+    }
+    .muted {
+      color: rgba(74, 44, 30, 0.7);
+      font-size: 14px;
+    }
+    .empty {
+      padding: 28px;
+      text-align: center;
+    }
+    .danger-button {
+      background: #b42318;
+      min-width: 72px;
+    }
+    .danger-button:hover {
+      filter: brightness(1.06);
+    }

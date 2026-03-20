@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
@@ -139,6 +139,13 @@ async function createDatabaseAdapter() {
       async exportRows() {
         const result = await pool.query("SELECT * FROM submissions ORDER BY created_at DESC");
         return result.rows;
+      },
+      async getSubmissionById(id) {
+        const result = await pool.query("SELECT * FROM submissions WHERE id = $1 LIMIT 1", [id]);
+        return result.rows[0] || null;
+      },
+      async deleteSubmissionById(id) {
+        await pool.query("DELETE FROM submissions WHERE id = $1", [id]);
       }
     };
   }
@@ -262,6 +269,12 @@ async function createDatabaseAdapter() {
     },
     async exportRows() {
       return db.prepare("SELECT * FROM submissions ORDER BY created_at DESC").all();
+    },
+    async getSubmissionById(id) {
+      return db.prepare("SELECT * FROM submissions WHERE id = ? LIMIT 1").get(id) || null;
+    },
+    async deleteSubmissionById(id) {
+      db.prepare("DELETE FROM submissions WHERE id = ?").run(id);
     }
   };
 }
@@ -272,7 +285,7 @@ async function createStorageAdapter() {
       throw new Error("STORAGE_DRIVER=s3 but S3 env vars are incomplete.");
     }
 
-    const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
+    const { DeleteObjectCommand, S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
 
     const s3Client = new S3Client({
       region: S3_REGION,
@@ -310,6 +323,16 @@ async function createStorageAdapter() {
           adultCardPath: buildS3PublicUrl(adultKey),
           childCardPath: buildS3PublicUrl(childKey)
         };
+      },
+      async deleteCardPair({ adultCardPath, childCardPath }) {
+        const keys = [adultCardPath, childCardPath]
+          .map((value) => getS3KeyFromPublicPath(value))
+          .filter(Boolean);
+
+        await Promise.all(keys.map((key) => s3Client.send(new DeleteObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: key
+        }))));
       }
     };
   }
@@ -331,6 +354,13 @@ async function createStorageAdapter() {
         adultCardPath: `/storage/submissions/${datePart}/${submissionId}/adult-card.png`,
         childCardPath: `/storage/submissions/${datePart}/${submissionId}/child-card.png`
       };
+    },
+    async deleteCardPair({ adultCardPath, childCardPath }) {
+      const targets = [adultCardPath, childCardPath]
+        .map((value) => getLocalStoragePathFromPublicPath(value))
+        .filter(Boolean);
+
+      await Promise.all(targets.map((targetPath) => rm(targetPath, { force: true })));
     }
   };
 }
@@ -341,6 +371,40 @@ function buildS3PublicUrl(key) {
   }
 
   return `${S3_ENDPOINT.replace(/\/$/, "")}/${S3_BUCKET}/${key}`;
+}
+
+function getS3KeyFromPublicPath(publicPath) {
+  const value = String(publicPath || "").trim();
+  if (!value) return "";
+
+  if (S3_PUBLIC_BASE_URL) {
+    const publicBase = S3_PUBLIC_BASE_URL.replace(/\/$/, "");
+    if (value.startsWith(`${publicBase}/`)) {
+      return value.slice(publicBase.length + 1);
+    }
+  }
+
+  const fallbackBase = `${S3_ENDPOINT.replace(/\/$/, "")}/${S3_BUCKET}/`;
+  if (value.startsWith(fallbackBase)) {
+    return value.slice(fallbackBase.length);
+  }
+
+  return "";
+}
+
+function getLocalStoragePathFromPublicPath(publicPath) {
+  const value = String(publicPath || "").trim();
+  if (!value.startsWith("/storage/")) return "";
+
+  const relativePath = value.replace(/^\/storage\/+/, "");
+  const resolvedPath = path.resolve(STORAGE_ROOT, relativePath);
+  const normalizedRoot = path.resolve(STORAGE_ROOT);
+
+  if (!resolvedPath.startsWith(normalizedRoot)) {
+    return "";
+  }
+
+  return resolvedPath;
 }
 
 function submissionToArray(record) {
@@ -370,7 +434,7 @@ function json(response, statusCode, payload) {
   response.writeHead(statusCode, {
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, X-Admin-Token"
   });
   response.end(JSON.stringify(payload));
@@ -582,6 +646,25 @@ async function handleSubmissionsList(url, request, response) {
   json(response, 200, { ok: true, rows });
 }
 
+async function handleDeleteSubmission(submissionId, url, request, response) {
+  if (!requireAdmin(url, request, response)) return;
+
+  const record = await database.getSubmissionById(submissionId);
+  if (!record) {
+    json(response, 404, { ok: false, error: "SUBMISSION_NOT_FOUND" });
+    return;
+  }
+
+  await storage.deleteCardPair({
+    adultCardPath: record.adult_card_path,
+    childCardPath: record.child_card_path
+  });
+
+  await database.deleteSubmissionById(submissionId);
+
+  json(response, 200, { ok: true, deletedId: submissionId });
+}
+
 async function serveLocalStorageFile(url, response) {
   const relativePath = url.pathname.replace(/^\/storage\/+/, "");
   const filePath = path.join(STORAGE_ROOT, relativePath);
@@ -610,7 +693,7 @@ const server = createServer(async (request, response) => {
   if (request.method === "OPTIONS") {
     response.writeHead(204, {
       "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+      "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, X-Admin-Token"
     });
     response.end();
@@ -653,6 +736,12 @@ const server = createServer(async (request, response) => {
 
     const total = await database.countSubmissions();
     json(response, 200, { ok: true, total });
+    return;
+  }
+
+  if (request.method === "DELETE" && pathname.startsWith("/api/submissions/")) {
+    const submissionId = pathname.slice("/api/submissions/".length).trim();
+    await handleDeleteSubmission(submissionId, url, request, response);
     return;
   }
 
