@@ -65,7 +65,7 @@
 
 .back-to-me-title {
     width: 480px;
-    margin: 20px auto 0;
+    margin: 30px auto 0;
     transform: translateY(-13px);  
 }
 .subtitle {
@@ -374,7 +374,7 @@
 
     .back-to-me-title {
         width: 160px;
-        margin-top: 16px;
+        margin-top: 20px;
     }
 
     .memory-box {
