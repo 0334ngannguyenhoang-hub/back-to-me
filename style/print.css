@@ -1,0 +1,61 @@
+.print-page {
+  background-attachment: scroll;
+}
+
+.print-shell {
+  width: min(1180px, 94vw);
+  margin: 0 auto;
+  padding: 20px 0 40px;
+  text-align: center;
+}
+
+.print-title {
+  margin: 0;
+  color: #b12301;
+  font-size: 40px;
+}
+
+.print-status {
+  margin: 14px auto 0;
+  max-width: 760px;
+  color: #6d4a35;
+  font-weight: 700;
+}
+
+.print-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 20px 0 10px;
+}
+
+.print-actions button,
+.secondary-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 168px;
+  padding: 12px 18px;
+  border: none;
+  border-radius: 999px;
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+  background: #b12301;
+  box-shadow: 0 10px 24px rgba(177, 35, 1, 0.2);
+}
+
+.secondary-link {
+  background: #6b4b3e;
+}
+
+.print-card-output {
+  margin-top: 28px;
+}
+
+@media (max-width: 900px) {
+  .print-title {
+    font-size: 30px;
+  }
+}

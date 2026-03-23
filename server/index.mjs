@@ -79,8 +79,19 @@ async function createDatabaseAdapter() {
         child_super TEXT,
         child_issues TEXT,
         adult_card_path TEXT NOT NULL,
-        child_card_path TEXT NOT NULL
+        child_card_path TEXT NOT NULL,
+        adult_portrait_path TEXT,
+        child_portrait_path TEXT
       );
+    `);
+
+    await pool.query(`
+      ALTER TABLE submissions
+      ADD COLUMN IF NOT EXISTS adult_portrait_path TEXT;
+    `);
+    await pool.query(`
+      ALTER TABLE submissions
+      ADD COLUMN IF NOT EXISTS child_portrait_path TEXT;
     `);
 
     return {
@@ -91,12 +102,12 @@ async function createDatabaseAdapter() {
               id, created_at, source_ip, user_agent,
               adult_name, adult_age, adult_job, adult_life_update, adult_super, adult_issues,
               child_name, child_age, child_dream, child_life_update, child_super, child_issues,
-              adult_card_path, child_card_path
+              adult_card_path, child_card_path, adult_portrait_path, child_portrait_path
             ) VALUES (
               $1, $2, $3, $4,
               $5, $6, $7, $8, $9, $10,
               $11, $12, $13, $14, $15, $16,
-              $17, $18
+              $17, $18, $19, $20
             )
             ON CONFLICT(id) DO UPDATE SET
               created_at = EXCLUDED.created_at,
@@ -115,7 +126,9 @@ async function createDatabaseAdapter() {
               child_super = EXCLUDED.child_super,
               child_issues = EXCLUDED.child_issues,
               adult_card_path = EXCLUDED.adult_card_path,
-              child_card_path = EXCLUDED.child_card_path
+              child_card_path = EXCLUDED.child_card_path,
+              adult_portrait_path = EXCLUDED.adult_portrait_path,
+              child_portrait_path = EXCLUDED.child_portrait_path
           `,
           submissionToArray(record)
         );
@@ -179,9 +192,23 @@ async function createDatabaseAdapter() {
       child_super TEXT,
       child_issues TEXT,
       adult_card_path TEXT NOT NULL,
-      child_card_path TEXT NOT NULL
+      child_card_path TEXT NOT NULL,
+      adult_portrait_path TEXT,
+      child_portrait_path TEXT
     );
   `);
+
+  try {
+    db.exec(`
+      ALTER TABLE submissions ADD COLUMN adult_portrait_path TEXT;
+    `);
+  } catch {}
+
+  try {
+    db.exec(`
+      ALTER TABLE submissions ADD COLUMN child_portrait_path TEXT;
+    `);
+  } catch {}
 
   const insertSubmission = db.prepare(`
     INSERT INTO submissions (
@@ -202,7 +229,9 @@ async function createDatabaseAdapter() {
       child_super,
       child_issues,
       adult_card_path,
-      child_card_path
+      child_card_path,
+      adult_portrait_path,
+      child_portrait_path
     ) VALUES (
       $id,
       $created_at,
@@ -221,7 +250,9 @@ async function createDatabaseAdapter() {
       $child_super,
       $child_issues,
       $adult_card_path,
-      $child_card_path
+      $child_card_path,
+      $adult_portrait_path,
+      $child_portrait_path
     )
     ON CONFLICT(id) DO UPDATE SET
       created_at = excluded.created_at,
@@ -240,7 +271,9 @@ async function createDatabaseAdapter() {
       child_super = excluded.child_super,
       child_issues = excluded.child_issues,
       adult_card_path = excluded.adult_card_path,
-      child_card_path = excluded.child_card_path
+      child_card_path = excluded.child_card_path,
+      adult_portrait_path = excluded.adult_portrait_path,
+      child_portrait_path = excluded.child_portrait_path
   `);
 
   return {
@@ -307,11 +340,13 @@ async function createStorageAdapter() {
 
     return {
       mode: "s3",
-      async saveCardPair({ submissionId, createdAt, adultCard, childCard }) {
+      async saveCardPair({ submissionId, createdAt, adultCard, childCard, adultPortrait, childPortrait }) {
         const datePart = new Date(createdAt || Date.now()).toISOString().slice(0, 10);
         const baseKey = `submissions/${datePart}/${submissionId}`;
         const adultKey = `${baseKey}/adult-card.png`;
         const childKey = `${baseKey}/child-card.png`;
+        const adultPortraitKey = adultPortrait ? `${baseKey}/adult-portrait.jpg` : "";
+        const childPortraitKey = childPortrait ? `${baseKey}/child-portrait.jpg` : "";
 
         await s3Client.send(new PutObjectCommand({
           Bucket: S3_BUCKET,
@@ -327,13 +362,33 @@ async function createStorageAdapter() {
           ContentType: childCard.type || "image/png"
         }));
 
+        if (adultPortrait && adultPortraitKey) {
+          await s3Client.send(new PutObjectCommand({
+            Bucket: S3_BUCKET,
+            Key: adultPortraitKey,
+            Body: Buffer.from(await adultPortrait.arrayBuffer()),
+            ContentType: adultPortrait.type || "image/jpeg"
+          }));
+        }
+
+        if (childPortrait && childPortraitKey) {
+          await s3Client.send(new PutObjectCommand({
+            Bucket: S3_BUCKET,
+            Key: childPortraitKey,
+            Body: Buffer.from(await childPortrait.arrayBuffer()),
+            ContentType: childPortrait.type || "image/jpeg"
+          }));
+        }
+
         return {
           adultCardPath: buildS3PublicUrl(adultKey),
-          childCardPath: buildS3PublicUrl(childKey)
+          childCardPath: buildS3PublicUrl(childKey),
+          adultPortraitPath: adultPortraitKey ? buildS3PublicUrl(adultPortraitKey) : "",
+          childPortraitPath: childPortraitKey ? buildS3PublicUrl(childPortraitKey) : ""
         };
       },
-      async deleteCardPair({ adultCardPath, childCardPath }) {
-        const keys = [adultCardPath, childCardPath]
+      async deleteCardPair({ adultCardPath, childCardPath, adultPortraitPath, childPortraitPath }) {
+        const keys = [adultCardPath, childCardPath, adultPortraitPath, childPortraitPath]
           .map((value) => getS3KeyFromPublicPath(value))
           .filter(Boolean);
 
@@ -347,24 +402,36 @@ async function createStorageAdapter() {
 
   return {
     mode: "local",
-    async saveCardPair({ submissionId, createdAt, adultCard, childCard }) {
+    async saveCardPair({ submissionId, createdAt, adultCard, childCard, adultPortrait, childPortrait }) {
       const datePart = new Date(createdAt || Date.now()).toISOString().slice(0, 10);
       const submissionDirectory = path.join(UPLOAD_ROOT, datePart, submissionId);
       await mkdir(submissionDirectory, { recursive: true });
 
       const adultDiskPath = path.join(submissionDirectory, "adult-card.png");
       const childDiskPath = path.join(submissionDirectory, "child-card.png");
+      const adultPortraitDiskPath = path.join(submissionDirectory, "adult-portrait.jpg");
+      const childPortraitDiskPath = path.join(submissionDirectory, "child-portrait.jpg");
 
       await writeFile(adultDiskPath, Buffer.from(await adultCard.arrayBuffer()));
       await writeFile(childDiskPath, Buffer.from(await childCard.arrayBuffer()));
 
+      if (adultPortrait) {
+        await writeFile(adultPortraitDiskPath, Buffer.from(await adultPortrait.arrayBuffer()));
+      }
+
+      if (childPortrait) {
+        await writeFile(childPortraitDiskPath, Buffer.from(await childPortrait.arrayBuffer()));
+      }
+
       return {
         adultCardPath: `/storage/submissions/${datePart}/${submissionId}/adult-card.png`,
-        childCardPath: `/storage/submissions/${datePart}/${submissionId}/child-card.png`
+        childCardPath: `/storage/submissions/${datePart}/${submissionId}/child-card.png`,
+        adultPortraitPath: adultPortrait ? `/storage/submissions/${datePart}/${submissionId}/adult-portrait.jpg` : "",
+        childPortraitPath: childPortrait ? `/storage/submissions/${datePart}/${submissionId}/child-portrait.jpg` : ""
       };
     },
-    async deleteCardPair({ adultCardPath, childCardPath }) {
-      const targets = [adultCardPath, childCardPath]
+    async deleteCardPair({ adultCardPath, childCardPath, adultPortraitPath, childPortraitPath }) {
+      const targets = [adultCardPath, childCardPath, adultPortraitPath, childPortraitPath]
         .map((value) => getLocalStoragePathFromPublicPath(value))
         .filter(Boolean);
 
@@ -434,7 +501,9 @@ function submissionToArray(record) {
     record.child_super,
     record.child_issues,
     record.adult_card_path,
-    record.child_card_path
+    record.child_card_path,
+    record.adult_portrait_path || "",
+    record.child_portrait_path || ""
   ];
 }
 
@@ -486,7 +555,9 @@ function createCsvContent(rows) {
     "child_super",
     "child_issues",
     "adult_card_path",
-    "child_card_path"
+    "child_card_path",
+    "adult_portrait_path",
+    "child_portrait_path"
   ];
 
   const lines = [headers.join(",")];
@@ -585,6 +656,8 @@ async function handleSubmission(request, response) {
   const metadataRaw = formData.get("metadata");
   const adultCard = formData.get("adultCard");
   const childCard = formData.get("childCard");
+  const adultPortrait = formData.get("adultPortrait");
+  const childPortrait = formData.get("childPortrait");
 
   if (typeof metadataRaw !== "string" || !(adultCard instanceof File) || !(childCard instanceof File)) {
     json(response, 400, { ok: false, error: "MISSING_REQUIRED_FIELDS" });
@@ -603,11 +676,13 @@ async function handleSubmission(request, response) {
   const submissionId = normalizeSubmissionId(metadata.submissionId);
   const createdAt = metadata.createdAt || new Date().toISOString();
 
-  const { adultCardPath, childCardPath } = await storage.saveCardPair({
+  const { adultCardPath, childCardPath, adultPortraitPath, childPortraitPath } = await storage.saveCardPair({
     submissionId,
     createdAt,
     adultCard,
-    childCard
+    childCard,
+    adultPortrait: adultPortrait instanceof File ? adultPortrait : null,
+    childPortrait: childPortrait instanceof File ? childPortrait : null
   });
 
   await database.upsertSubmission({
@@ -628,14 +703,18 @@ async function handleSubmission(request, response) {
     child_super: metadata.childSuper || "",
     child_issues: metadata.childIssues || "",
     adult_card_path: adultCardPath,
-    child_card_path: childCardPath
+    child_card_path: childCardPath,
+    adult_portrait_path: adultPortraitPath || "",
+    child_portrait_path: childPortraitPath || ""
   });
 
   json(response, 200, {
     ok: true,
     submissionId,
     adultCardPath,
-    childCardPath
+    childCardPath,
+    adultPortraitPath,
+    childPortraitPath
   });
 }
 
@@ -655,6 +734,18 @@ async function handleSubmissionsList(url, request, response) {
   json(response, 200, { ok: true, rows });
 }
 
+async function handleSingleSubmission(submissionId, url, request, response) {
+  if (!requireAdmin(url, request, response)) return;
+
+  const row = await database.getSubmissionById(submissionId);
+  if (!row) {
+    json(response, 404, { ok: false, error: "SUBMISSION_NOT_FOUND" });
+    return;
+  }
+
+  json(response, 200, { ok: true, row });
+}
+
 async function handleDeleteSubmission(submissionId, url, request, response) {
   if (!requireAdmin(url, request, response)) return;
 
@@ -666,7 +757,9 @@ async function handleDeleteSubmission(submissionId, url, request, response) {
 
   await storage.deleteCardPair({
     adultCardPath: record.adult_card_path,
-    childCardPath: record.child_card_path
+    childCardPath: record.child_card_path,
+    adultPortraitPath: record.adult_portrait_path,
+    childPortraitPath: record.child_portrait_path
   });
 
   await database.deleteSubmissionById(submissionId);
@@ -745,6 +838,17 @@ const server = createServer(async (request, response) => {
 
     const total = await database.countSubmissions();
     json(response, 200, { ok: true, total });
+    return;
+  }
+
+  if (
+    request.method === "GET" &&
+    pathname.startsWith("/api/submissions/") &&
+    pathname !== "/api/submissions/export.csv" &&
+    pathname !== "/api/submissions/count"
+  ) {
+    const submissionId = pathname.slice("/api/submissions/".length).trim();
+    await handleSingleSubmission(submissionId, url, request, response);
     return;
   }
 

@@ -123,6 +123,16 @@
       });
     }
 
+    function bindHqButtons() {
+      document.querySelectorAll("[data-hq-id]").forEach((link) => {
+        link.addEventListener("click", (event) => {
+          event.preventDefault();
+          const submissionId = link.getAttribute("data-hq-id");
+          window.open(withToken(`/print.html?id=${encodeURIComponent(submissionId)}`), "_blank");
+        });
+      });
+    }
+
     async function loadRows() {
       statusText.textContent = "Đang tải dữ liệu...";
       const search = searchInput.value.trim();
@@ -157,11 +167,15 @@
           <td><a href="${escapeHtml(row.adult_card_path)}" target="_blank" rel="noreferrer"><img class="thumb" src="${escapeHtml(row.adult_card_path)}" alt="" /></a></td>
           <td><a href="${escapeHtml(row.child_card_path)}" target="_blank" rel="noreferrer"><img class="thumb" src="${escapeHtml(row.child_card_path)}" alt="" /></a></td>
           <td><code>${escapeHtml(row.id)}</code></td>
-          <td><button class="danger-button" type="button" data-delete-id="${escapeHtml(row.id)}">Xóa</button></td>
+          <td>
+            <a class="secondary-button" href="/print.html?id=${escapeHtml(row.id)}" data-hq-id="${escapeHtml(row.id)}">Render HQ</a>
+            <button class="danger-button" type="button" data-delete-id="${escapeHtml(row.id)}">Xóa</button>
+          </td>
         </tr>
       `).join("");
 
       bindDeleteButtons();
+      bindHqButtons();
     }
 
     refreshButton.addEventListener("click", () => {

@@ -513,9 +513,18 @@ async function captureCardCanvas(element, scale, backgroundColor = "#ffffff") {
 
 async function uploadGeneratedCardsOnce(adultCanvas, childCanvas) {
   const cardData = safeReadLocalCardData();
+  let cardPayload = null;
 
   if (!cardData || !cardData.submissionId) return { skipped: true, reason: "missing-card-data" };
   if (cardData.backendUploadedAt) return { skipped: true, reason: "already-uploaded" };
+
+  if (typeof window.loadCardPayload === "function") {
+    try {
+      cardPayload = await window.loadCardPayload();
+    } catch (error) {
+      console.error("Cannot read stored card payload for upload.", error);
+    }
+  }
 
   const adultBlob = await canvasToBlob(adultCanvas);
   const childBlob = await canvasToBlob(childCanvas);
@@ -524,6 +533,14 @@ async function uploadGeneratedCardsOnce(adultCanvas, childCanvas) {
   formData.append("metadata", JSON.stringify(cardData));
   formData.append("adultCard", adultBlob, "adult-card.png");
   formData.append("childCard", childBlob, "child-card.png");
+
+  if (cardPayload && cardPayload.adultImageBlob instanceof Blob) {
+    formData.append("adultPortrait", cardPayload.adultImageBlob, "adult-portrait.jpg");
+  }
+
+  if (cardPayload && cardPayload.childImageBlob instanceof Blob) {
+    formData.append("childPortrait", cardPayload.childImageBlob, "child-portrait.jpg");
+  }
 
   const response = await fetch(`${API_BASE_URL}/api/submissions`, {
     method: "POST",
