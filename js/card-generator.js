@@ -8,6 +8,34 @@ const CARD_DB_NAME = "backToMeDemo";
 const CARD_STORE_NAME = "cards";
 const CARD_RECORD_KEY = "latestCard";
 
+function getRuntimeProfile() {
+  const userAgent = navigator.userAgent || "";
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent) || window.innerWidth <= 900;
+  const isInAppBrowser = /FBAN|FBAV|Instagram|Line|MicroMessenger/i.test(userAgent);
+  const deviceMemory = Number(navigator.deviceMemory || 0);
+  const lowMemory = (deviceMemory > 0 && deviceMemory <= 4) || isInAppBrowser;
+
+  return {
+    isMobile,
+    isInAppBrowser,
+    lowMemory
+  };
+}
+
+function getExportScale(kind = "png") {
+  const profile = getRuntimeProfile();
+
+  if (kind === "gif") {
+    if (profile.isInAppBrowser) return 1;
+    if (profile.isMobile || profile.lowMemory) return 1;
+    return 2;
+  }
+
+  if (profile.isInAppBrowser) return 2;
+  if (profile.isMobile || profile.lowMemory) return 2;
+  return Math.max(2, Math.min(3, Math.ceil(window.devicePixelRatio || 1)));
+}
+
 function setMessage(element, message, type) {
   if (!element) return;
 
@@ -46,6 +74,11 @@ function readTrimmedValue(id) {
 function readSelectedFile(id) {
   const input = document.getElementById(id);
   return input && input.files && input.files[0] ? input.files[0] : null;
+}
+
+function readProcessedImage(id) {
+  if (typeof window.getProcessedCardImage !== "function") return null;
+  return window.getProcessedCardImage(id);
 }
 
 function createSubmissionId() {
@@ -214,8 +247,8 @@ async function generateCard() {
   setMessage(messageEl, "", "");
 
   const files = {
-    adultImage: readSelectedFile("adultImage"),
-    childImage: readSelectedFile("childImage")
+    adultImage: readProcessedImage("adultImage") || readSelectedFile("adultImage"),
+    childImage: readProcessedImage("childImage") || readSelectedFile("childImage")
   };
   const data = collectCardData();
   const missing = validateCardData(data, files);
@@ -239,21 +272,20 @@ async function generateCard() {
   toggleButtonState(button, true, "Tạo card của bạn", "Đang tạo card...");
   setMessage(
     messageEl,
-    "Đang lưu dữ liệu card. Với ảnh dung lượng lớn, bước này có thể mất thêm vài giây...",
+    "Đang lưu dữ liệu card. Với điện thoại hoặc ảnh lớn, bước này có thể mất thêm vài giây...",
     "is-loading"
   );
 
   try {
     await saveCardPayload({
       ...data,
-      adultImageBlob: files.adultImage,
-      childImageBlob: files.childImage,
-      adultRenderUrl: data.adultImg,
-      childRenderUrl: data.childImg
+      adultImageBlob: files.adultImage && files.adultImage.blob ? files.adultImage.blob : files.adultImage,
+      childImageBlob: files.childImage && files.childImage.blob ? files.childImage.blob : files.childImage,
+      adultRenderUrl: files.adultImage && files.adultImage.dataUrl ? files.adultImage.dataUrl : data.adultImg,
+      childRenderUrl: files.childImage && files.childImage.dataUrl ? files.childImage.dataUrl : data.childImg
     });
 
     localStorage.setItem(CARD_DATA_KEY, JSON.stringify(buildLightweightCardData(data)));
-
     window.location.href = "product.html";
   } catch (error) {
     console.error("Cannot save card data.", error);
@@ -370,13 +402,6 @@ function restoreCardState(state) {
   card2.style.opacity = state.card2Opacity;
 }
 
-function download(canvas, filename) {
-  const link = document.createElement("a");
-  link.href = canvas.toDataURL("image/png");
-  link.download = filename;
-  link.click();
-}
-
 function getDownloadTrayElements() {
   return {
     tray: document.getElementById("downloadTray"),
@@ -387,6 +412,13 @@ function getDownloadTrayElements() {
 function clearDownloadTray() {
   const { tray, links } = getDownloadTrayElements();
   if (!tray || !links) return;
+
+  Array.from(links.querySelectorAll("a")).forEach((link) => {
+    const href = link.getAttribute("href") || "";
+    if (href.startsWith("blob:")) {
+      URL.revokeObjectURL(href);
+    }
+  });
 
   links.innerHTML = "";
   tray.hidden = true;
@@ -475,6 +507,13 @@ function canExportCards() {
 
 document.addEventListener("DOMContentLoaded", () => {
   const cardOutput = getCardOutput();
+  const runtimeProfile = getRuntimeProfile();
+  const { gifButton } = getProductButtons();
+
+  if (runtimeProfile.isInAppBrowser && gifButton) {
+    gifButton.textContent = "Mở trình duyệt để tải GIF";
+  }
+
   if (!cardOutput) return;
 
   cardOutput.addEventListener("click", () => {
@@ -488,18 +527,18 @@ async function downloadCards() {
   const { card1, card2 } = getCardSides();
   const { pngButton } = getProductButtons();
   const previousState = captureCardState();
-  const exportScale = Math.max(4, Math.min(6, Math.ceil((window.devicePixelRatio || 1) * 2.2)));
+  const exportScale = getExportScale("png");
 
   clearDownloadTray();
   setDownloadButtonsDisabled(true, pngButton);
-  setProductMessage("Đang chụp 2 mặt card ở chất lượng cao...", "is-loading");
+  setProductMessage("Đang xuất 2 ảnh PNG. Trên điện thoại bước này có thể mất vài giây...", "is-loading");
 
   try {
     await waitForImages(document.body);
     let uploadSynced = true;
 
     showCardFace("adult");
-    await wait(400);
+    await wait(280);
 
     const canvas1 = await html2canvas(card1, {
       scale: exportScale,
@@ -509,10 +548,8 @@ async function downloadCards() {
       logging: false
     });
 
-    download(canvas1, "nguEch-card-1.png");
-
     showCardFace("child");
-    await wait(1600);
+    await wait(500);
 
     const canvas2 = await html2canvas(card2, {
       scale: exportScale,
@@ -533,15 +570,20 @@ async function downloadCards() {
       );
     }
 
+    const [adultBlob, childBlob] = await Promise.all([
+      canvasToBlob(canvas1),
+      canvasToBlob(canvas2)
+    ]);
+
     const downloadItems = [
       {
-        href: canvas1.toDataURL("image/png"),
+        href: URL.createObjectURL(adultBlob),
         filename: "nguEch-card-1.png",
         label: "Tải ảnh hiện tại",
         className: "is-adult"
       },
       {
-        href: canvas2.toDataURL("image/png"),
+        href: URL.createObjectURL(childBlob),
         filename: "nguEch-card-2.png",
         label: "Tải ảnh hồi bé",
         className: "is-child"
@@ -555,7 +597,7 @@ async function downloadCards() {
       downloadLinks[0].click();
     }
     if (downloadLinks[1]) {
-      setTimeout(() => downloadLinks[1].click(), 180);
+      setTimeout(() => downloadLinks[1].click(), 300);
     }
 
     if (uploadSynced) {
@@ -571,7 +613,7 @@ async function downloadCards() {
     }
   } catch (error) {
     console.error("Cannot export PNG cards.", error);
-    setProductMessage("Tải 2 ảnh PNG chưa thành công. Bạn thử lại sau khi ảnh tải xong hoàn toàn nhé.", "is-error");
+    setProductMessage("Tải 2 ảnh PNG chưa thành công. Với điện thoại yếu, bạn hãy mở lại bằng trình duyệt ngoài Messenger nhé.", "is-error");
   } finally {
     resetCardFace();
     restoreCardState(previousState);
@@ -586,27 +628,38 @@ async function downloadGIF() {
     return;
   }
 
+  const runtimeProfile = getRuntimeProfile();
+  if (runtimeProfile.isInAppBrowser) {
+    setProductMessage("Messenger in-app browser không ổn định để tải GIF. Bạn hãy mở link bằng Chrome hoặc Safari nhé.", "is-error");
+    return;
+  }
+
   const { container, card1, card2 } = getCardSides();
   const { gifButton } = getProductButtons();
   const previousState = captureCardState();
 
   setDownloadButtonsDisabled(true, gifButton);
-  setProductMessage("Đang render GIF, phần này sẽ mất vài giây...", "is-loading");
+  setProductMessage("Đang render GIF. Trên điện thoại bước này sẽ chậm hơn một chút...", "is-loading");
 
   try {
     await waitForImages(document.body);
 
+    const gifWidth = runtimeProfile.isMobile ? 390 : 520;
+    const gifHeight = runtimeProfile.isMobile ? 225 : 300;
+    const frameDelay = runtimeProfile.isMobile ? 40 : 30;
+    const frames = runtimeProfile.isMobile ? 8 : 16;
+
     const gif = new GIF({
-      workers: 2,
-      quality: 4,
-      width: 520,
-      height: 300,
+      workers: runtimeProfile.isMobile ? 1 : 2,
+      quality: runtimeProfile.isMobile ? 10 : 6,
+      width: gifWidth,
+      height: gifHeight,
       workerScript: "js/gif.worker.js"
     });
 
     async function capture() {
       const canvas = await html2canvas(container, {
-        scale: 2,
+        scale: getExportScale("gif"),
         useCORS: true,
         backgroundColor: null,
         imageTimeout: 0,
@@ -614,13 +667,11 @@ async function downloadGIF() {
       });
 
       const resized = document.createElement("canvas");
-      resized.width = 520;
-      resized.height = 300;
-      resized.getContext("2d").drawImage(canvas, 0, 0, 520, 300);
+      resized.width = gifWidth;
+      resized.height = gifHeight;
+      resized.getContext("2d").drawImage(canvas, 0, 0, gifWidth, gifHeight);
       return resized;
     }
-
-    const frames = 16;
 
     showCardFace("adult");
     gif.addFrame(await capture(), { delay: 500 });
@@ -629,21 +680,21 @@ async function downloadGIF() {
       const progress = i / frames;
       card1.style.opacity = String(1 - progress);
       card2.style.opacity = String(progress);
-      await wait(30);
-      gif.addFrame(await capture(), { delay: 30 });
+      await wait(frameDelay);
+      gif.addFrame(await capture(), { delay: frameDelay });
     }
 
-    gif.addFrame(await capture(), { delay: 400 });
+    gif.addFrame(await capture(), { delay: 350 });
 
     for (let i = 0; i <= frames; i += 1) {
       const progress = i / frames;
       card1.style.opacity = String(progress);
       card2.style.opacity = String(1 - progress);
-      await wait(30);
-      gif.addFrame(await capture(), { delay: 30 });
+      await wait(frameDelay);
+      gif.addFrame(await capture(), { delay: frameDelay });
     }
 
-    gif.addFrame(await capture(), { delay: 800 });
+    gif.addFrame(await capture(), { delay: 650 });
 
     await new Promise((resolve, reject) => {
       gif.on("finished", (blob) => {
@@ -666,7 +717,7 @@ async function downloadGIF() {
     setProductMessage("Đã xuất xong GIF chuyển cảnh. Bạn kiểm tra thư mục tải xuống nhé.", "is-success");
   } catch (error) {
     console.error("Cannot export GIF.", error);
-    setProductMessage("Xuất GIF chưa thành công. Bạn thử lại sau ít giây nhé.", "is-error");
+    setProductMessage("Xuất GIF chưa thành công. Với điện thoại yếu, bạn hãy thử lại trong trình duyệt ngoài Messenger nhé.", "is-error");
   } finally {
     resetCardFace();
     restoreCardState(previousState);

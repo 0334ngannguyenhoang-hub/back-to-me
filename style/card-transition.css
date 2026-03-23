@@ -257,8 +257,8 @@
 
     position: absolute;
 
-    bottom: calc(-40px * var(--card-scale));
-    left: calc(170px * var(--card-scale));
+    bottom:calc(-45px * var(--card-scale));
+    left:calc(300px * var(--card-scale));
 
     width: calc(270px * var(--card-scale));
 
