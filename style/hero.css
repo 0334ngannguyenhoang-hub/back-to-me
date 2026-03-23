@@ -373,8 +373,8 @@
     }
 
     .back-to-me-title {
-        width: 160px;
-        margin-top: 20px;
+        width: 290px;
+        margin-top: 190px;
     }
 
     .memory-box {
@@ -383,21 +383,21 @@
     }
 
        .hero-loaded .decor-1 {
-        top: 16%;
+        top: 19%;
         left: 2%;
         width: 28%;
     }
 
     .hero-loaded .decor-2 {
-        top: 10%;
+        top: 15%;
         left: 40%;
         width: 28%;
     }
 
     .hero-loaded .decor-3 {
         top: 31%;
-        left: 62%;
-        width: 28%;
+        left: 78%;
+        width: 24%;
     }
 
     .hero-loaded .decor-4 {
@@ -413,15 +413,15 @@
     }
 
     .hero-loaded .decor-6 {
-        top: 15%;
+        top: 18%;
         left: 69%;
         width: 34%;
     }
 
     .hero-loaded .decor-7 {
         top: 30%;
-        left: 9%;
-        width: 15%;
+        left: 4%;
+        width: 12%;
     }
 
     .hero-loaded .decor-8 {
