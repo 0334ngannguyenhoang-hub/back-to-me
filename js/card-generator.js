@@ -83,6 +83,69 @@ function getPrintUploadScale() {
   return 4;
 }
 
+function getVideoConfig() {
+  const profile = getRuntimeProfile();
+
+  if (profile.lowMemory) {
+    return {
+      width: 780,
+      height: 450,
+      fps: 24,
+      bitrate: 7_500_000,
+      captureScale: 2,
+      holdMs: 500,
+      transitionMs: 520,
+      pauseMs: 420
+    };
+  }
+
+  if (profile.isMobile) {
+    return {
+      width: 1040,
+      height: 600,
+      fps: 30,
+      bitrate: 12_000_000,
+      captureScale: 3,
+      holdMs: 520,
+      transitionMs: 560,
+      pauseMs: 460
+    };
+  }
+
+  return {
+    width: 1040,
+    height: 600,
+    fps: 30,
+    bitrate: 16_000_000,
+    captureScale: 3,
+    holdMs: 520,
+    transitionMs: 560,
+    pauseMs: 460
+  };
+}
+
+function getSupportedVideoFormat() {
+  if (typeof MediaRecorder === "undefined") {
+    return null;
+  }
+
+  const candidates = [
+    { mimeType: "video/mp4;codecs=h264", extension: "mp4" },
+    { mimeType: "video/mp4", extension: "mp4" },
+    { mimeType: "video/webm;codecs=vp9", extension: "webm" },
+    { mimeType: "video/webm;codecs=vp8", extension: "webm" },
+    { mimeType: "video/webm", extension: "webm" }
+  ];
+
+  for (const candidate of candidates) {
+    if (MediaRecorder.isTypeSupported(candidate.mimeType)) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
 function setMessage(element, message, type) {
   if (!element) return;
 
@@ -370,7 +433,7 @@ function setDownloadButtonsDisabled(isDisabled, activeButton = null) {
   };
 
   updateLabel(pngButton, "Tải 2 ảnh PNG", "Đang xuất PNG...");
-  updateLabel(gifButton, "Tải GIF chuyển cảnh", "Đang xuất GIF...");
+  updateLabel(gifButton, "Tải video MP4", "Đang xuất video...");
 }
 
 function getCardOutput() {
@@ -585,7 +648,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const { gifButton } = getProductButtons();
 
   if (runtimeProfile.isInAppBrowser && gifButton) {
-    gifButton.textContent = "Mở trình duyệt để tải GIF";
+    gifButton.textContent = "Mở trình duyệt để tải video";
   }
 
   if (!cardOutput) return;
@@ -697,106 +760,142 @@ async function downloadCards() {
   }
 }
 
-async function downloadGIF() {
-  if (!canExportCards()) return;
-  if (typeof GIF === "undefined") {
-    setProductMessage("Thiếu thư viện GIF để xuất file.", "is-error");
-    return;
+function drawVideoFrame(context, outputCanvas, adultCanvas, childCanvas, progress) {
+  context.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
+  context.globalAlpha = 1;
+  context.drawImage(adultCanvas, 0, 0, outputCanvas.width, outputCanvas.height);
+
+  if (progress > 0) {
+    context.globalAlpha = progress;
+    context.drawImage(childCanvas, 0, 0, outputCanvas.width, outputCanvas.height);
   }
+
+  context.globalAlpha = 1;
+}
+
+async function recordCanvasSequence(outputCanvas, drawStep, format, config) {
+  const stream = outputCanvas.captureStream(config.fps);
+  const chunks = [];
+  const recorder = new MediaRecorder(stream, {
+    mimeType: format.mimeType,
+    videoBitsPerSecond: config.bitrate
+  });
+
+  recorder.ondataavailable = (event) => {
+    if (event.data && event.data.size > 0) {
+      chunks.push(event.data);
+    }
+  };
+
+  const finished = new Promise((resolve, reject) => {
+    recorder.onstop = () => resolve(new Blob(chunks, { type: format.mimeType }));
+    recorder.onerror = () => reject(new Error("Video recording failed."));
+  });
+
+  recorder.start();
+  await drawStep();
+  recorder.stop();
+
+  return finished;
+}
+
+async function playVideoSequence(config, outputCanvas, context, adultCanvas, childCanvas) {
+  const frameMs = Math.round(1000 / config.fps);
+  const holdFrames = Math.round(config.holdMs / frameMs);
+  const transitionFrames = Math.round(config.transitionMs / frameMs);
+  const pauseFrames = Math.round(config.pauseMs / frameMs);
+
+  for (let i = 0; i < holdFrames; i += 1) {
+    drawVideoFrame(context, outputCanvas, adultCanvas, childCanvas, 0);
+    await wait(frameMs);
+  }
+
+  for (let i = 0; i <= transitionFrames; i += 1) {
+    drawVideoFrame(context, outputCanvas, adultCanvas, childCanvas, i / transitionFrames);
+    await wait(frameMs);
+  }
+
+  for (let i = 0; i < pauseFrames; i += 1) {
+    drawVideoFrame(context, outputCanvas, childCanvas, adultCanvas, 0);
+    await wait(frameMs);
+  }
+
+  for (let i = 0; i <= transitionFrames; i += 1) {
+    drawVideoFrame(context, outputCanvas, childCanvas, adultCanvas, i / transitionFrames);
+    await wait(frameMs);
+  }
+
+  for (let i = 0; i < holdFrames; i += 1) {
+    drawVideoFrame(context, outputCanvas, adultCanvas, childCanvas, 0);
+    await wait(frameMs);
+  }
+}
+
+async function downloadVideo() {
+  if (!canExportCards()) return;
 
   const runtimeProfile = getRuntimeProfile();
   if (runtimeProfile.isInAppBrowser) {
-    setProductMessage("Messenger in-app browser không ổn định để tải GIF. Bạn hãy mở link bằng Chrome hoặc Safari nhé.", "is-error");
+    setProductMessage("Messenger in-app browser không ổn định để tải video. Bạn hãy mở link bằng Chrome hoặc Safari nhé.", "is-error");
     return;
   }
 
-  const { container, card1, card2 } = getCardSides();
+  const format = getSupportedVideoFormat();
+  if (!format) {
+    setProductMessage("Trình duyệt này chưa hỗ trợ xuất video trực tiếp. Bạn hãy thử bằng Chrome hoặc Safari nhé.", "is-error");
+    return;
+  }
+
+  const { card1, card2 } = getCardSides();
   const { gifButton } = getProductButtons();
   const previousState = captureCardState();
+  const config = getVideoConfig();
 
   setDownloadButtonsDisabled(true, gifButton);
-  setProductMessage("Đang render GIF. Trên điện thoại bước này sẽ chậm hơn một chút...", "is-loading");
+  setProductMessage("Đang render video chất lượng cao...", "is-loading");
 
   try {
     await waitForImages(document.body);
 
-    const gifConfig = getGifConfig();
-    const gifWidth = gifConfig.width;
-    const gifHeight = gifConfig.height;
-    const frameDelay = gifConfig.delay;
-    const frames = gifConfig.frames;
-
-    const gif = new GIF({
-      workers: gifConfig.workers,
-      quality: gifConfig.quality,
-      width: gifWidth,
-      height: gifHeight,
-      dither: "FloydSteinberg-serpentine",
-      repeat: 0,
-      workerScript: "js/gif.worker.js"
-    });
-
-    async function capture() {
-      const canvas = await html2canvas(container, {
-        scale: gifConfig.captureScale,
-        useCORS: true,
-        backgroundColor: null,
-        imageTimeout: 0,
-        logging: false
-      });
-
-      const resized = document.createElement("canvas");
-      resized.width = gifWidth;
-      resized.height = gifHeight;
-      resized.getContext("2d").drawImage(canvas, 0, 0, gifWidth, gifHeight);
-      return resized;
-    }
-
     showCardFace("adult");
-    gif.addFrame(await capture(), { delay: 500 });
+    await wait(220);
+    const adultCanvas = await captureCardCanvas(card1, config.captureScale);
 
-    for (let i = 0; i <= frames; i += 1) {
-      const progress = i / frames;
-      card1.style.opacity = String(1 - progress);
-      card2.style.opacity = String(progress);
-      await wait(frameDelay);
-      gif.addFrame(await capture(), { delay: frameDelay });
+    showCardFace("child");
+    await wait(320);
+    const childCanvas = await captureCardCanvas(card2, config.captureScale);
+
+    const outputCanvas = document.createElement("canvas");
+    outputCanvas.width = config.width;
+    outputCanvas.height = config.height;
+    const context = outputCanvas.getContext("2d");
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+
+    drawVideoFrame(context, outputCanvas, adultCanvas, childCanvas, 0);
+
+    const videoBlob = await recordCanvasSequence(
+      outputCanvas,
+      async () => playVideoSequence(config, outputCanvas, context, adultCanvas, childCanvas),
+      format,
+      config
+    );
+
+    const objectUrl = URL.createObjectURL(videoBlob);
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = `back-to-me-card.${format.extension}`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
+
+    if (format.extension !== "mp4") {
+      setProductMessage("Video đã được xuất ở định dạng WEBM vì trình duyệt này chưa hỗ trợ ghi MP4 trực tiếp.", "is-success");
+    } else {
+      setProductMessage("Đã xuất xong video MP4 chất lượng cao. Bạn kiểm tra thư mục tải xuống nhé.", "is-success");
     }
-
-    gif.addFrame(await capture(), { delay: 350 });
-
-    for (let i = 0; i <= frames; i += 1) {
-      const progress = i / frames;
-      card1.style.opacity = String(progress);
-      card2.style.opacity = String(1 - progress);
-      await wait(frameDelay);
-      gif.addFrame(await capture(), { delay: frameDelay });
-    }
-
-    gif.addFrame(await capture(), { delay: 650 });
-
-    await new Promise((resolve, reject) => {
-      gif.on("finished", (blob) => {
-        const link = document.createElement("a");
-        const objectUrl = URL.createObjectURL(blob);
-
-        link.href = objectUrl;
-        link.download = "back-to-me-card.gif";
-        link.click();
-
-        setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-        resolve();
-      });
-
-      gif.on("abort", () => reject(new Error("GIF render aborted.")));
-      gif.on("error", () => reject(new Error("GIF render failed.")));
-      gif.render();
-    });
-
-    setProductMessage("Đã xuất xong GIF chuyển cảnh. Bạn kiểm tra thư mục tải xuống nhé.", "is-success");
   } catch (error) {
-    console.error("Cannot export GIF.", error);
-    setProductMessage("Xuất GIF chưa thành công. Với điện thoại yếu, bạn hãy thử lại trong trình duyệt ngoài Messenger nhé.", "is-error");
+    console.error("Cannot export video.", error);
+    setProductMessage("Xuất video chưa thành công. Bạn hãy thử lại bằng Chrome hoặc Safari nhé.", "is-error");
   } finally {
     resetCardFace();
     restoreCardState(previousState);
