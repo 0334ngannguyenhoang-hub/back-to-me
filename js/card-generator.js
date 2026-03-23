@@ -129,13 +129,23 @@ function getSupportedVideoFormat() {
     return null;
   }
 
-  const candidates = [
-    { mimeType: "video/mp4;codecs=h264", extension: "mp4" },
-    { mimeType: "video/mp4", extension: "mp4" },
-    { mimeType: "video/webm;codecs=vp9", extension: "webm" },
-    { mimeType: "video/webm;codecs=vp8", extension: "webm" },
-    { mimeType: "video/webm", extension: "webm" }
-  ];
+  const userAgent = navigator.userAgent || "";
+  const isSafariFamily =
+    /Safari/i.test(userAgent) &&
+    !/Chrome|CriOS|Edg|OPR|SamsungBrowser|Firefox|FxiOS/i.test(userAgent);
+
+  const candidates = isSafariFamily
+    ? [
+        { mimeType: "video/mp4;codecs=h264", extension: "mp4" },
+        { mimeType: "video/mp4", extension: "mp4" },
+        { mimeType: "video/webm;codecs=vp8", extension: "webm" },
+        { mimeType: "video/webm", extension: "webm" }
+      ]
+    : [
+        { mimeType: "video/webm;codecs=vp9", extension: "webm" },
+        { mimeType: "video/webm;codecs=vp8", extension: "webm" },
+        { mimeType: "video/webm", extension: "webm" }
+      ];
 
   for (const candidate of candidates) {
     if (MediaRecorder.isTypeSupported(candidate.mimeType)) {
@@ -414,6 +424,19 @@ function getProductMessageElement() {
 
 function setProductMessage(message, type) {
   setMessage(getProductMessageElement(), message, type);
+}
+
+function showProductBlockingNotice(message, type = "is-error") {
+  setProductMessage(message, type);
+
+  const messageElement = getProductMessageElement();
+  if (messageElement) {
+    messageElement.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  if (typeof window.alert === "function") {
+    window.alert(message);
+  }
 }
 
 function getProductButtons() {
@@ -836,13 +859,13 @@ async function downloadVideo() {
 
   const runtimeProfile = getRuntimeProfile();
   if (runtimeProfile.isInAppBrowser) {
-    setProductMessage("Messenger in-app browser không ổn định để tải video. Bạn hãy mở link bằng Chrome hoặc Safari nhé.", "is-error");
+    showProductBlockingNotice("Messenger in-app browser không ổn định để tải video. Bạn hãy mở link bằng Chrome hoặc Safari nhé.");
     return;
   }
 
   const format = getSupportedVideoFormat();
   if (!format) {
-    setProductMessage("Trình duyệt này chưa hỗ trợ xuất video trực tiếp. Bạn hãy thử bằng Chrome hoặc Safari nhé.", "is-error");
+    showProductBlockingNotice("Trình duyệt này chưa hỗ trợ xuất video trực tiếp. Bạn hãy thử bằng Chrome hoặc Safari nhé.");
     return;
   }
 
@@ -889,7 +912,7 @@ async function downloadVideo() {
     setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
 
     if (format.extension !== "mp4") {
-      setProductMessage("Video đã được xuất ở định dạng WEBM vì trình duyệt này chưa hỗ trợ ghi MP4 trực tiếp.", "is-success");
+      setProductMessage("Video đã được xuất ở định dạng WEBM vì trình duyệt này không ghi MP4 ổn định trực tiếp. WEBM này sẽ mở đúng hơn file MP4 lỗi.", "is-success");
     } else {
       setProductMessage("Đã xuất xong video MP4 chất lượng cao. Bạn kiểm tra thư mục tải xuống nhé.", "is-success");
     }
