@@ -36,6 +36,44 @@ function getExportScale(kind = "png") {
   return Math.max(2, Math.min(3, Math.ceil(window.devicePixelRatio || 1)));
 }
 
+function getGifConfig() {
+  const profile = getRuntimeProfile();
+
+  if (profile.lowMemory) {
+    return {
+      width: 390,
+      height: 225,
+      frames: 8,
+      delay: 42,
+      workers: 1,
+      quality: 9,
+      captureScale: 1
+    };
+  }
+
+  if (profile.isMobile) {
+    return {
+      width: 468,
+      height: 270,
+      frames: 12,
+      delay: 34,
+      workers: 2,
+      quality: 7,
+      captureScale: 2
+    };
+  }
+
+  return {
+    width: 520,
+    height: 300,
+    frames: 16,
+    delay: 30,
+    workers: 2,
+    quality: 6,
+    captureScale: 2
+  };
+}
+
 function setMessage(element, message, type) {
   if (!element) return;
 
@@ -644,14 +682,15 @@ async function downloadGIF() {
   try {
     await waitForImages(document.body);
 
-    const gifWidth = runtimeProfile.isMobile ? 390 : 520;
-    const gifHeight = runtimeProfile.isMobile ? 225 : 300;
-    const frameDelay = runtimeProfile.isMobile ? 40 : 30;
-    const frames = runtimeProfile.isMobile ? 8 : 16;
+    const gifConfig = getGifConfig();
+    const gifWidth = gifConfig.width;
+    const gifHeight = gifConfig.height;
+    const frameDelay = gifConfig.delay;
+    const frames = gifConfig.frames;
 
     const gif = new GIF({
-      workers: runtimeProfile.isMobile ? 1 : 2,
-      quality: runtimeProfile.isMobile ? 10 : 6,
+      workers: gifConfig.workers,
+      quality: gifConfig.quality,
       width: gifWidth,
       height: gifHeight,
       workerScript: "js/gif.worker.js"
@@ -659,7 +698,7 @@ async function downloadGIF() {
 
     async function capture() {
       const canvas = await html2canvas(container, {
-        scale: getExportScale("gif"),
+        scale: gifConfig.captureScale,
         useCORS: true,
         backgroundColor: null,
         imageTimeout: 0,
