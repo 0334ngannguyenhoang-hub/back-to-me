@@ -41,37 +41,46 @@ function getGifConfig() {
 
   if (profile.lowMemory) {
     return {
-      width: 390,
-      height: 225,
-      frames: 8,
-      delay: 42,
+      width: 468,
+      height: 270,
+      frames: 10,
+      delay: 40,
       workers: 1,
-      quality: 9,
-      captureScale: 1
+      quality: 5,
+      captureScale: 2
     };
   }
 
   if (profile.isMobile) {
     return {
-      width: 468,
-      height: 270,
-      frames: 12,
+      width: 520,
+      height: 300,
+      frames: 14,
       delay: 34,
-      workers: 2,
-      quality: 7,
+      workers: 1,
+      quality: 3,
       captureScale: 2
     };
   }
 
   return {
-    width: 520,
-    height: 300,
-    frames: 16,
-    delay: 30,
-    workers: 2,
-    quality: 6,
-    captureScale: 2
+      width: 520,
+      height: 300,
+      frames: 16,
+      delay: 30,
+      workers: 2,
+      quality: 2,
+      captureScale: 2
   };
+}
+
+function getPrintUploadScale() {
+  const profile = getRuntimeProfile();
+
+  if (profile.isInAppBrowser) return 2;
+  if (profile.lowMemory) return 2;
+  if (profile.isMobile) return 3;
+  return 4;
 }
 
 function setMessage(element, message, type) {
@@ -492,6 +501,16 @@ function canvasToBlob(canvas) {
   });
 }
 
+async function captureCardCanvas(element, scale, backgroundColor = "#ffffff") {
+  return html2canvas(element, {
+    scale,
+    useCORS: true,
+    backgroundColor,
+    imageTimeout: 0,
+    logging: false
+  });
+}
+
 async function uploadGeneratedCardsOnce(adultCanvas, childCanvas) {
   const cardData = safeReadLocalCardData();
 
@@ -566,6 +585,7 @@ async function downloadCards() {
   const { pngButton } = getProductButtons();
   const previousState = captureCardState();
   const exportScale = getExportScale("png");
+  const printUploadScale = Math.max(exportScale, getPrintUploadScale());
 
   clearDownloadTray();
   setDownloadButtonsDisabled(true, pngButton);
@@ -578,27 +598,28 @@ async function downloadCards() {
     showCardFace("adult");
     await wait(280);
 
-    const canvas1 = await html2canvas(card1, {
-      scale: exportScale,
-      useCORS: true,
-      backgroundColor: "#ffffff",
-      imageTimeout: 0,
-      logging: false
-    });
+    const canvas1 = await captureCardCanvas(card1, exportScale);
 
     showCardFace("child");
     await wait(500);
 
-    const canvas2 = await html2canvas(card2, {
-      scale: exportScale,
-      useCORS: true,
-      backgroundColor: "#ffffff",
-      imageTimeout: 0,
-      logging: false
-    });
+    const canvas2 = await captureCardCanvas(card2, exportScale);
 
     try {
-      await uploadGeneratedCardsOnce(canvas1, canvas2);
+      let uploadCanvas1 = canvas1;
+      let uploadCanvas2 = canvas2;
+
+      if (printUploadScale > exportScale) {
+        showCardFace("adult");
+        await wait(180);
+        uploadCanvas1 = await captureCardCanvas(card1, printUploadScale);
+
+        showCardFace("child");
+        await wait(320);
+        uploadCanvas2 = await captureCardCanvas(card2, printUploadScale);
+      }
+
+      await uploadGeneratedCardsOnce(uploadCanvas1, uploadCanvas2);
     } catch (uploadError) {
       uploadSynced = false;
       console.error("Cannot sync generated cards to backend.", uploadError);
@@ -693,6 +714,8 @@ async function downloadGIF() {
       quality: gifConfig.quality,
       width: gifWidth,
       height: gifHeight,
+      dither: "FloydSteinberg-serpentine",
+      repeat: 0,
       workerScript: "js/gif.worker.js"
     });
 

@@ -83,7 +83,7 @@ button {
       z-index: 1;
     }
     img.thumb {
-      width: 96px;
+      width: 144px;
       border-radius: 10px;
       border: 1px solid var(--line);
       display: block;
