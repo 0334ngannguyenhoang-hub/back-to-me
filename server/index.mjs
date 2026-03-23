@@ -40,6 +40,14 @@ function stripTrailingSlash(value) {
   return value.endsWith("/") ? value.slice(0, -1) : value;
 }
 
+function decodeUrlPathname(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 async function createDatabaseAdapter() {
   if (DATABASE_DRIVER === "postgres") {
     if (!POSTGRES_URL) {
@@ -534,7 +542,8 @@ function getContentType(filePath) {
 }
 
 function resolveStaticPath(urlPathname) {
-  const normalized = urlPathname === "/" ? "/index.html" : urlPathname;
+  const decodedPathname = decodeUrlPathname(urlPathname);
+  const normalized = decodedPathname === "/" ? "/index.html" : decodedPathname;
   const sanitized = path.normalize(normalized).replace(/^(\.\.[\/\\])+/, "");
   return path.join(PROJECT_ROOT, sanitized);
 }
@@ -666,7 +675,7 @@ async function handleDeleteSubmission(submissionId, url, request, response) {
 }
 
 async function serveLocalStorageFile(url, response) {
-  const relativePath = url.pathname.replace(/^\/storage\/+/, "");
+  const relativePath = decodeUrlPathname(url.pathname).replace(/^\/storage\/+/, "");
   const filePath = path.join(STORAGE_ROOT, relativePath);
 
   try {

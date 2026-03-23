@@ -46,6 +46,7 @@
     top: 0;
     transform: translateX(-50%);
     transition: all 1s cubic-bezier(.22,1,.36,1);
+    filter: drop-shadow(0 12px 18px rgba(0,0,0,0.3));
 }
 
 /* Active Animations */
