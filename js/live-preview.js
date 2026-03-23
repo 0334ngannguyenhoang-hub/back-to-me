@@ -1,3 +1,5 @@
+const CARD_IMAGE_SCALE = 5;
+
 function updateTextPreview(inputId, outputId, fallback = "") {
   const input = document.getElementById(inputId);
   const output = document.getElementById(outputId);
@@ -41,20 +43,24 @@ function createCardImageDataUrl(file, targetWidth, targetHeight) {
 
       image.onload = () => {
         const canvas = document.createElement("canvas");
-        canvas.width = targetWidth;
-        canvas.height = targetHeight;
+        canvas.width = targetWidth * CARD_IMAGE_SCALE;
+        canvas.height = targetHeight * CARD_IMAGE_SCALE;
 
         const context = canvas.getContext("2d");
-        const scale = Math.max(targetWidth / image.width, targetHeight / image.height);
+        const outputWidth = canvas.width;
+        const outputHeight = canvas.height;
+        const scale = Math.max(outputWidth / image.width, outputHeight / image.height);
         const drawWidth = image.width * scale;
         const drawHeight = image.height * scale;
-        const offsetX = (targetWidth - drawWidth) / 2;
-        const offsetY = (targetHeight - drawHeight) / 2;
+        const offsetX = (outputWidth - drawWidth) / 2;
+        const offsetY = (outputHeight - drawHeight) / 2;
 
-        context.clearRect(0, 0, targetWidth, targetHeight);
+        context.imageSmoothingEnabled = true;
+        context.imageSmoothingQuality = "high";
+        context.clearRect(0, 0, outputWidth, outputHeight);
         context.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
 
-        resolve(canvas.toDataURL("image/jpeg", 0.92));
+        resolve(canvas.toDataURL("image/jpeg", 0.98));
       };
 
       image.onerror = () => reject(new Error("Cannot read selected image."));

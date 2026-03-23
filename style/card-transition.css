@@ -116,6 +116,7 @@
 
 .card-title {
     width: 198px;
+    transform: rotate(-4deg);
 }
 
 /* logo */

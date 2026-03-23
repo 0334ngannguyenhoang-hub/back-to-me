@@ -186,6 +186,26 @@ function updateStoredCardData(patch) {
   );
 }
 
+function buildLightweightCardData(data) {
+  return {
+    submissionId: data.submissionId,
+    adultName: data.adultName,
+    adultAge: data.adultAge,
+    adultJob: data.adultJob,
+    adultLifeUpdate: data.adultLifeUpdate,
+    adultSuper: data.adultSuper,
+    adultIssues: data.adultIssues,
+    childName: data.childName,
+    childAge: data.childAge,
+    childDream: data.childDream,
+    childLifeUpdate: data.childLifeUpdate,
+    childSuper: data.childSuper,
+    childIssues: data.childIssues,
+    createdAt: data.createdAt,
+    hasIndexedImages: true
+  };
+}
+
 async function generateCard() {
   const messageEl = document.getElementById("formMessage");
   const button = document.getElementById("generateButton");
@@ -232,15 +252,7 @@ async function generateCard() {
       childRenderUrl: data.childImg
     });
 
-    localStorage.setItem(
-      CARD_DATA_KEY,
-      JSON.stringify({
-        ...data,
-        adultRenderUrl: data.adultImg,
-        childRenderUrl: data.childImg,
-        hasIndexedImages: true
-      })
-    );
+    localStorage.setItem(CARD_DATA_KEY, JSON.stringify(buildLightweightCardData(data)));
 
     window.location.href = "product.html";
   } catch (error) {
@@ -476,7 +488,7 @@ async function downloadCards() {
   const { card1, card2 } = getCardSides();
   const { pngButton } = getProductButtons();
   const previousState = captureCardState();
-  const exportScale = Math.max(3, Math.min(5, Math.ceil((window.devicePixelRatio || 1) * 2)));
+  const exportScale = Math.max(4, Math.min(6, Math.ceil((window.devicePixelRatio || 1) * 2.2)));
 
   clearDownloadTray();
   setDownloadButtonsDisabled(true, pngButton);
