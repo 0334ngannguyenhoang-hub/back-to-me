@@ -27,6 +27,12 @@ S3_SECRET_ACCESS_KEY=your-supabase-s3-secret-access-key
 S3_PUBLIC_BASE_URL=https://[PROJECT-REF].supabase.co/storage/v1/object/public/back-to-me-cards
 ```
 
+Luu y:
+
+- `S3_ENDPOINT` phai la URL day du, bat dau bang `https://`
+- `S3_PUBLIC_BASE_URL` cung phai la URL day du, bat dau bang `https://`
+- khong de dau ngoac `[]`, dau nhay, hoac khoang trang thua trong gia tri env
+
 ## Gia tri phai tranh
 
 Neu tren Render con mot trong 2 gia tri nay thi van co nguy co mat data:

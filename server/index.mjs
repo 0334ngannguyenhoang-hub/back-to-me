@@ -18,15 +18,15 @@ const ADMIN_HTML_PATH = path.join(__dirname, "admin.html");
 const PROJECT_ROOT = path.dirname(__dirname);
 const DATABASE_DRIVER = process.env.DATABASE_DRIVER || "sqlite";
 const STORAGE_DRIVER = process.env.STORAGE_DRIVER || "local";
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "";
+const ADMIN_TOKEN = (process.env.ADMIN_TOKEN || "").trim();
 const ADMIN_PROTECT = process.env.ADMIN_PROTECT === "true";
-const S3_BUCKET = process.env.S3_BUCKET || "";
-const S3_REGION = process.env.S3_REGION || "auto";
-const S3_ENDPOINT = process.env.S3_ENDPOINT || "";
-const S3_ACCESS_KEY_ID = process.env.S3_ACCESS_KEY_ID || "";
-const S3_SECRET_ACCESS_KEY = process.env.S3_SECRET_ACCESS_KEY || "";
-const S3_PUBLIC_BASE_URL = process.env.S3_PUBLIC_BASE_URL || "";
-const POSTGRES_URL = process.env.POSTGRES_URL || "";
+const S3_BUCKET = (process.env.S3_BUCKET || "").trim();
+const S3_REGION = (process.env.S3_REGION || "auto").trim();
+const S3_ENDPOINT = (process.env.S3_ENDPOINT || "").trim();
+const S3_ACCESS_KEY_ID = (process.env.S3_ACCESS_KEY_ID || "").trim();
+const S3_SECRET_ACCESS_KEY = (process.env.S3_SECRET_ACCESS_KEY || "").trim();
+const S3_PUBLIC_BASE_URL = (process.env.S3_PUBLIC_BASE_URL || "").trim();
+const POSTGRES_URL = (process.env.POSTGRES_URL || "").trim();
 
 await mkdir(UPLOAD_ROOT, { recursive: true });
 await mkdir(DATA_ROOT, { recursive: true });
@@ -60,6 +60,21 @@ function decodeUrlPathname(value) {
     return decodeURIComponent(value);
   } catch {
     return value;
+  }
+}
+
+function ensureValidHttpUrl(value, envName) {
+  const normalized = String(value || "").trim();
+  if (!normalized) return "";
+
+  try {
+    const url = new URL(normalized);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      throw new Error(`${envName} must start with http:// or https://`);
+    }
+    return url.toString().replace(/\/$/, "");
+  } catch (error) {
+    throw new Error(`${envName} is not a valid URL: ${normalized}`);
   }
 }
 
@@ -343,11 +358,16 @@ async function createStorageAdapter() {
       throw new Error("STORAGE_DRIVER=s3 but S3 env vars are incomplete.");
     }
 
+    const validatedS3Endpoint = ensureValidHttpUrl(S3_ENDPOINT, "S3_ENDPOINT");
+    const validatedS3PublicBaseUrl = S3_PUBLIC_BASE_URL
+      ? ensureValidHttpUrl(S3_PUBLIC_BASE_URL, "S3_PUBLIC_BASE_URL")
+      : "";
+
     const { DeleteObjectCommand, S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
 
     const s3Client = new S3Client({
       region: S3_REGION,
-      endpoint: S3_ENDPOINT,
+      endpoint: validatedS3Endpoint,
       forcePathStyle: process.env.S3_FORCE_PATH_STYLE === "true",
       credentials: {
         accessKeyId: S3_ACCESS_KEY_ID,
@@ -398,10 +418,10 @@ async function createStorageAdapter() {
         }
 
         return {
-          adultCardPath: buildS3PublicUrl(adultKey),
-          childCardPath: buildS3PublicUrl(childKey),
-          adultPortraitPath: adultPortraitKey ? buildS3PublicUrl(adultPortraitKey) : "",
-          childPortraitPath: childPortraitKey ? buildS3PublicUrl(childPortraitKey) : ""
+          adultCardPath: buildS3PublicUrl(adultKey, validatedS3Endpoint, validatedS3PublicBaseUrl),
+          childCardPath: buildS3PublicUrl(childKey, validatedS3Endpoint, validatedS3PublicBaseUrl),
+          adultPortraitPath: adultPortraitKey ? buildS3PublicUrl(adultPortraitKey, validatedS3Endpoint, validatedS3PublicBaseUrl) : "",
+          childPortraitPath: childPortraitKey ? buildS3PublicUrl(childPortraitKey, validatedS3Endpoint, validatedS3PublicBaseUrl) : ""
         };
       },
       async deleteCardPair({ adultCardPath, childCardPath, adultPortraitPath, childPortraitPath }) {
@@ -457,12 +477,12 @@ async function createStorageAdapter() {
   };
 }
 
-function buildS3PublicUrl(key) {
-  if (S3_PUBLIC_BASE_URL) {
-    return `${S3_PUBLIC_BASE_URL.replace(/\/$/, "")}/${key}`;
+function buildS3PublicUrl(key, endpoint = S3_ENDPOINT, publicBaseUrl = S3_PUBLIC_BASE_URL) {
+  if (publicBaseUrl) {
+    return `${publicBaseUrl.replace(/\/$/, "")}/${key}`;
   }
 
-  return `${S3_ENDPOINT.replace(/\/$/, "")}/${S3_BUCKET}/${key}`;
+  return `${endpoint.replace(/\/$/, "")}/${S3_BUCKET}/${key}`;
 }
 
 function getS3KeyFromPublicPath(publicPath) {
@@ -740,7 +760,9 @@ async function handleSubmission(request, response) {
       databaseDriver: DATABASE_DRIVER,
       storageDriver: STORAGE_DRIVER,
       message: error && error.message ? error.message : String(error),
-      code: error && error.code ? error.code : ""
+      code: error && error.code ? error.code : "",
+      s3EndpointPreview: S3_ENDPOINT || "(empty)",
+      s3PublicBaseUrlPreview: S3_PUBLIC_BASE_URL || "(empty)"
     });
 
     json(response, 500, {
