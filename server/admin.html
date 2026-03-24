@@ -26,6 +26,8 @@
       <div class="muted" id="statusText">Đang tải dữ liệu...</div>
     </div>
 
+    <div id="healthWarning" class="warning-banner" hidden></div>
+
     <div class="table-wrap">
       <table>
         <thead>
@@ -54,6 +56,7 @@
     const downloadImagesButton = document.getElementById("downloadImagesButton");
     const countValue = document.getElementById("countValue");
     const statusText = document.getElementById("statusText");
+    const healthWarning = document.getElementById("healthWarning");
     const tableBody = document.getElementById("tableBody");
     const adminToken = new URLSearchParams(window.location.search).get("token") || "";
 
@@ -162,6 +165,23 @@
       }
 
       return rowsPayload.rows || [];
+    }
+
+    async function loadRuntimeWarning() {
+      try {
+        const response = await fetch("/api/health", { cache: "no-store" });
+        const payload = await response.json();
+        const persistence = payload && payload.persistence;
+
+        if (response.ok && persistence && persistence.volatile) {
+          healthWarning.hidden = false;
+          healthWarning.textContent = "Canh báo: web này đang lưu dữ liệu bằng SQLite/local storage trên web service. Sau restart hoặc redeploy, ảnh và submissions có thể bị mất. Bạn nên chuyển env sang Postgres + storage cloud để giữ dữ liệu lâu dài.";
+          return;
+        }
+      } catch {}
+
+      healthWarning.hidden = true;
+      healthWarning.textContent = "";
     }
 
     async function fetchImageBlob(imagePath) {
@@ -287,7 +307,10 @@
       });
     });
 
-    loadRows().catch((error) => {
+    Promise.all([
+      loadRows(),
+      loadRuntimeWarning()
+    ]).catch((error) => {
       statusText.textContent = error.message;
       tableBody.innerHTML = `<tr><td class="empty" colspan="7">${escapeHtml(error.message)}</td></tr>`;
     });

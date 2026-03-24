@@ -35,6 +35,21 @@ const database = await createDatabaseAdapter();
 const storage = await createStorageAdapter();
 const adminHtml = await readFile(ADMIN_HTML_PATH, "utf8");
 
+function getPersistenceStatus() {
+  const databaseVolatile = DATABASE_DRIVER === "sqlite";
+  const storageVolatile = STORAGE_DRIVER === "local";
+  const volatile = databaseVolatile || storageVolatile;
+
+  return {
+    volatile,
+    databaseDriver: DATABASE_DRIVER,
+    storageDriver: STORAGE_DRIVER,
+    warning: volatile
+      ? "DANG_DUNG_SQLITE_HOAC_LOCAL_STORAGE_TREN_WEB_SERVICE. Render co the reset file tam sau restart/redeploy."
+      : ""
+  };
+}
+
 function stripTrailingSlash(value) {
   if (!value || value === "/") return "/";
   return value.endsWith("/") ? value.slice(0, -1) : value;
@@ -805,11 +820,13 @@ const server = createServer(async (request, response) => {
   }
 
   if (request.method === "GET" && pathname === "/api/health") {
+    const persistence = getPersistenceStatus();
     json(response, 200, {
       ok: true,
       service: "back-to-me-backend",
       databaseDriver: DATABASE_DRIVER,
-      storageDriver: STORAGE_DRIVER
+      storageDriver: STORAGE_DRIVER,
+      persistence
     });
     return;
   }
@@ -883,4 +900,8 @@ server.listen(PORT, HOST, () => {
   console.log(`Admin page: http://127.0.0.1:${PORT}/admin`);
   console.log(`Database driver: ${DATABASE_DRIVER}`);
   console.log(`Storage driver: ${STORAGE_DRIVER}`);
+  const persistence = getPersistenceStatus();
+  if (persistence.volatile) {
+    console.warn("WARNING: Current deployment is using volatile persistence. Data and image files can disappear after restart or redeploy.");
+  }
 });

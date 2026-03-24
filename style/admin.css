@@ -73,6 +73,16 @@ button {
       gap: 24px;
       flex-wrap: wrap;
     }
+    .warning-banner {
+      margin-bottom: 18px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px solid rgba(180, 35, 24, 0.18);
+      background: #fff1ef;
+      color: #8a1c12;
+      font-weight: 600;
+      line-height: 1.5;
+    }
     .table-wrap {
       overflow: auto;
       background: var(--panel);

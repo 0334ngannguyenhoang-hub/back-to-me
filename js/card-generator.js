@@ -93,9 +93,9 @@ function getVideoConfig() {
       fps: 24,
       bitrate: 7_500_000,
       captureScale: 2,
-      holdMs: 500,
-      transitionMs: 520,
-      pauseMs: 420
+      holdMs: 1700,
+      transitionMs: 1100,
+      pauseMs: 2400
     };
   }
 
@@ -106,9 +106,9 @@ function getVideoConfig() {
       fps: 30,
       bitrate: 12_000_000,
       captureScale: 3,
-      holdMs: 520,
-      transitionMs: 560,
-      pauseMs: 460
+      holdMs: 1700,
+      transitionMs: 1100,
+      pauseMs: 2400
     };
   }
 
@@ -118,9 +118,9 @@ function getVideoConfig() {
     fps: 30,
     bitrate: 16_000_000,
     captureScale: 3,
-    holdMs: 520,
-    transitionMs: 560,
-    pauseMs: 460
+    holdMs: 1700,
+    transitionMs: 1100,
+    pauseMs: 2400
   };
 }
 
