@@ -296,6 +296,14 @@ async function saveCardPayload(payload) {
   });
 }
 
+async function updateCardPayload(patch) {
+  const existing = (await loadCardPayload()) || {};
+  await saveCardPayload({
+    ...existing,
+    ...patch
+  });
+}
+
 async function loadCardPayload() {
   const db = await openCardDatabase();
 
@@ -598,11 +606,8 @@ async function captureCardCanvas(element, scale, backgroundColor = "#ffffff") {
 }
 
 async function uploadGeneratedCardsOnce(adultCanvas, childCanvas) {
-  const cardData = safeReadLocalCardData();
+  const storedCardData = safeReadLocalCardData();
   let cardPayload = null;
-
-  if (!cardData || !cardData.submissionId) return { skipped: true, reason: "missing-card-data" };
-  if (cardData.backendUploadedAt) return { skipped: true, reason: "already-uploaded" };
 
   if (typeof window.loadCardPayload === "function") {
     try {
@@ -610,6 +615,19 @@ async function uploadGeneratedCardsOnce(adultCanvas, childCanvas) {
     } catch (error) {
       console.error("Cannot read stored card payload for upload.", error);
     }
+  }
+
+  const cardData =
+    storedCardData && storedCardData.submissionId
+      ? storedCardData
+      : (cardPayload ? buildLightweightCardData(cardPayload) : null);
+
+  if (!cardData || !cardData.submissionId) {
+    return { skipped: true, reason: "missing-card-data" };
+  }
+
+  if (cardData.backendUploadedAt || (cardPayload && cardPayload.backendUploadedAt)) {
+    return { skipped: true, reason: "already-uploaded" };
   }
 
   const adultBlob = await canvasToBlob(adultCanvas);
@@ -652,6 +670,15 @@ async function uploadGeneratedCardsOnce(adultCanvas, childCanvas) {
     backendUploadedAt: new Date().toISOString(),
     backendSubmissionId: payload.submissionId || cardData.submissionId
   });
+
+  try {
+    await updateCardPayload({
+      backendUploadedAt: new Date().toISOString(),
+      backendSubmissionId: payload.submissionId || cardData.submissionId
+    });
+  } catch (error) {
+    console.error("Cannot update IndexedDB payload after backend upload.", error);
+  }
 
   return payload;
 }
