@@ -693,46 +693,62 @@ async function handleSubmission(request, response) {
   const submissionId = normalizeSubmissionId(metadata.submissionId);
   const createdAt = metadata.createdAt || new Date().toISOString();
 
-  const { adultCardPath, childCardPath, adultPortraitPath, childPortraitPath } = await storage.saveCardPair({
-    submissionId,
-    createdAt,
-    adultCard,
-    childCard,
-    adultPortrait: adultPortrait instanceof File ? adultPortrait : null,
-    childPortrait: childPortrait instanceof File ? childPortrait : null
-  });
+  try {
+    const { adultCardPath, childCardPath, adultPortraitPath, childPortraitPath } = await storage.saveCardPair({
+      submissionId,
+      createdAt,
+      adultCard,
+      childCard,
+      adultPortrait: adultPortrait instanceof File ? adultPortrait : null,
+      childPortrait: childPortrait instanceof File ? childPortrait : null
+    });
 
-  await database.upsertSubmission({
-    id: submissionId,
-    created_at: createdAt,
-    source_ip: request.socket.remoteAddress || "",
-    user_agent: request.headers["user-agent"] || "",
-    adult_name: metadata.adultName || "",
-    adult_age: metadata.adultAge || "",
-    adult_job: metadata.adultJob || "",
-    adult_life_update: metadata.adultLifeUpdate || "",
-    adult_super: metadata.adultSuper || "",
-    adult_issues: metadata.adultIssues || "",
-    child_name: metadata.childName || "",
-    child_age: metadata.childAge || "",
-    child_dream: metadata.childDream || "",
-    child_life_update: metadata.childLifeUpdate || "",
-    child_super: metadata.childSuper || "",
-    child_issues: metadata.childIssues || "",
-    adult_card_path: adultCardPath,
-    child_card_path: childCardPath,
-    adult_portrait_path: adultPortraitPath || "",
-    child_portrait_path: childPortraitPath || ""
-  });
+    await database.upsertSubmission({
+      id: submissionId,
+      created_at: createdAt,
+      source_ip: request.socket.remoteAddress || "",
+      user_agent: request.headers["user-agent"] || "",
+      adult_name: metadata.adultName || "",
+      adult_age: metadata.adultAge || "",
+      adult_job: metadata.adultJob || "",
+      adult_life_update: metadata.adultLifeUpdate || "",
+      adult_super: metadata.adultSuper || "",
+      adult_issues: metadata.adultIssues || "",
+      child_name: metadata.childName || "",
+      child_age: metadata.childAge || "",
+      child_dream: metadata.childDream || "",
+      child_life_update: metadata.childLifeUpdate || "",
+      child_super: metadata.childSuper || "",
+      child_issues: metadata.childIssues || "",
+      adult_card_path: adultCardPath,
+      child_card_path: childCardPath,
+      adult_portrait_path: adultPortraitPath || "",
+      child_portrait_path: childPortraitPath || ""
+    });
 
-  json(response, 200, {
-    ok: true,
-    submissionId,
-    adultCardPath,
-    childCardPath,
-    adultPortraitPath,
-    childPortraitPath
-  });
+    json(response, 200, {
+      ok: true,
+      submissionId,
+      adultCardPath,
+      childCardPath,
+      adultPortraitPath,
+      childPortraitPath
+    });
+  } catch (error) {
+    console.error("Cannot save submission.", {
+      submissionId,
+      databaseDriver: DATABASE_DRIVER,
+      storageDriver: STORAGE_DRIVER,
+      message: error && error.message ? error.message : String(error),
+      code: error && error.code ? error.code : ""
+    });
+
+    json(response, 500, {
+      ok: false,
+      error: "SUBMISSION_SAVE_FAILED",
+      message: error && error.message ? error.message : "Unknown submission save error."
+    });
+  }
 }
 
 async function handleAdminPage(url, request, response) {
