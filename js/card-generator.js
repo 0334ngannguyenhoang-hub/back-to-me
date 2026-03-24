@@ -646,19 +646,9 @@ async function uploadGeneratedCardsOnce(adultCanvas, childCanvas) {
     formData.append("childPortrait", cardPayload.childImageBlob, "child-portrait.jpg");
   }
 
-  const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-  const timeoutId = controller
-    ? window.setTimeout(() => controller.abort(), 15000)
-    : null;
-
   const response = await fetch(`${API_BASE_URL}/api/submissions`, {
     method: "POST",
-    body: formData,
-    signal: controller ? controller.signal : undefined
-  }).finally(() => {
-    if (timeoutId) {
-      window.clearTimeout(timeoutId);
-    }
+    body: formData
   });
 
   if (!response.ok) {
