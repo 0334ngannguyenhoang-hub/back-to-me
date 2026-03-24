@@ -646,9 +646,19 @@ async function uploadGeneratedCardsOnce(adultCanvas, childCanvas) {
     formData.append("childPortrait", cardPayload.childImageBlob, "child-portrait.jpg");
   }
 
+  const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const timeoutId = controller
+    ? window.setTimeout(() => controller.abort(), 15000)
+    : null;
+
   const response = await fetch(`${API_BASE_URL}/api/submissions`, {
     method: "POST",
-    body: formData
+    body: formData,
+    signal: controller ? controller.signal : undefined
+  }).finally(() => {
+    if (timeoutId) {
+      window.clearTimeout(timeoutId);
+    }
   });
 
   if (!response.ok) {
@@ -765,7 +775,6 @@ async function downloadCards() {
 
   try {
     await waitForImages(document.body);
-    let uploadSynced = true;
 
     showCardFace("adult");
     await wait(280);
@@ -776,17 +785,6 @@ async function downloadCards() {
     await wait(500);
 
     const canvas2 = await captureCardCanvas(card2, exportScale);
-
-    try {
-      await syncGeneratedCards(card1, card2, canvas1, canvas2, exportScale);
-    } catch (uploadError) {
-      uploadSynced = false;
-      console.error("Cannot sync generated cards to backend.", uploadError);
-      setProductMessage(
-        "Ảnh đã tải về được, nhưng chưa đồng bộ lên hệ thống in quà. Bạn kiểm tra backend rồi tải lại một lần nữa nhé.",
-        "is-error"
-      );
-    }
 
     const [adultBlob, childBlob] = await Promise.all([
       canvasToBlob(canvas1),
@@ -816,6 +814,15 @@ async function downloadCards() {
     }
     if (downloadLinks[1]) {
       setTimeout(() => downloadLinks[1].click(), 300);
+    }
+
+    let uploadSynced = true;
+
+    try {
+      await syncGeneratedCards(card1, card2, canvas1, canvas2, exportScale);
+    } catch (uploadError) {
+      uploadSynced = false;
+      console.error("Cannot sync generated cards to backend.", uploadError);
     }
 
     if (uploadSynced) {
