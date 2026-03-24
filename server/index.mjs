@@ -839,98 +839,118 @@ async function serveLocalStorageFile(url, response) {
 }
 
 const server = createServer(async (request, response) => {
-  if (!request.url) {
-    json(response, 404, { ok: false });
-    return;
-  }
+  try {
+    if (!request.url) {
+      json(response, 404, { ok: false });
+      return;
+    }
 
-  const url = new URL(request.url, `http://${request.headers.host || "127.0.0.1"}`);
-  const pathname = stripTrailingSlash(url.pathname);
+    const url = new URL(request.url, `http://${request.headers.host || "127.0.0.1"}`);
+    const pathname = stripTrailingSlash(url.pathname);
 
-  if (request.method === "OPTIONS") {
-    response.writeHead(204, {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, X-Admin-Token"
+    if (request.method === "OPTIONS") {
+      response.writeHead(204, {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, X-Admin-Token"
+      });
+      response.end();
+      return;
+    }
+
+    if (request.method === "GET" && pathname === "/api/health") {
+      const persistence = getPersistenceStatus();
+      json(response, 200, {
+        ok: true,
+        service: "back-to-me-backend",
+        databaseDriver: DATABASE_DRIVER,
+        storageDriver: STORAGE_DRIVER,
+        persistence
+      });
+      return;
+    }
+
+    if (request.method === "GET" && pathname === "/admin") {
+      await handleAdminPage(url, request, response);
+      return;
+    }
+
+    if (request.method === "GET" && pathname === "/api/submissions") {
+      await handleSubmissionsList(url, request, response);
+      return;
+    }
+
+    if (request.method === "GET" && pathname === "/api/submissions/export.csv") {
+      if (!requireAdmin(url, request, response)) return;
+
+      const csvContent = createCsvContent(await database.exportRows());
+      text(response, 200, csvContent, {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename="back-to-me-submissions.csv"`
+      });
+      return;
+    }
+
+    if (request.method === "GET" && pathname === "/api/submissions/count") {
+      if (!requireAdmin(url, request, response)) return;
+
+      const total = await database.countSubmissions();
+      json(response, 200, { ok: true, total });
+      return;
+    }
+
+    if (
+      request.method === "GET" &&
+      pathname.startsWith("/api/submissions/") &&
+      pathname !== "/api/submissions/export.csv" &&
+      pathname !== "/api/submissions/count"
+    ) {
+      const submissionId = pathname.slice("/api/submissions/".length).trim();
+      await handleSingleSubmission(submissionId, url, request, response);
+      return;
+    }
+
+    if (request.method === "DELETE" && pathname.startsWith("/api/submissions/")) {
+      const submissionId = pathname.slice("/api/submissions/".length).trim();
+      await handleDeleteSubmission(submissionId, url, request, response);
+      return;
+    }
+
+    if (request.method === "POST" && pathname === "/api/submissions") {
+      await handleSubmission(request, response);
+      return;
+    }
+
+    if (request.method === "GET" && STORAGE_DRIVER === "local" && url.pathname.startsWith("/storage/")) {
+      await serveLocalStorageFile(url, response);
+      return;
+    }
+
+    if (request.method === "GET") {
+      const served = await serveStaticFile(url, response);
+      if (served) return;
+    }
+
+    json(response, 404, { ok: false, error: "NOT_FOUND" });
+  } catch (error) {
+    console.error("Unhandled request error.", {
+      method: request.method,
+      url: request.url,
+      message: error && error.message ? error.message : String(error),
+      code: error && error.code ? error.code : ""
     });
+
+    if (!response.headersSent) {
+      json(response, 500, {
+        ok: false,
+        error: "INTERNAL_SERVER_ERROR",
+        message: error && error.message ? error.message : "Unknown server error."
+      });
+      return;
+    }
+
     response.end();
-    return;
   }
-
-  if (request.method === "GET" && pathname === "/api/health") {
-    const persistence = getPersistenceStatus();
-    json(response, 200, {
-      ok: true,
-      service: "back-to-me-backend",
-      databaseDriver: DATABASE_DRIVER,
-      storageDriver: STORAGE_DRIVER,
-      persistence
-    });
-    return;
-  }
-
-  if (request.method === "GET" && pathname === "/admin") {
-    await handleAdminPage(url, request, response);
-    return;
-  }
-
-  if (request.method === "GET" && pathname === "/api/submissions") {
-    await handleSubmissionsList(url, request, response);
-    return;
-  }
-
-  if (request.method === "GET" && pathname === "/api/submissions/export.csv") {
-    if (!requireAdmin(url, request, response)) return;
-
-    const csvContent = createCsvContent(await database.exportRows());
-    text(response, 200, csvContent, {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="back-to-me-submissions.csv"`
-    });
-    return;
-  }
-
-  if (request.method === "GET" && pathname === "/api/submissions/count") {
-    if (!requireAdmin(url, request, response)) return;
-
-    const total = await database.countSubmissions();
-    json(response, 200, { ok: true, total });
-    return;
-  }
-
-  if (
-    request.method === "GET" &&
-    pathname.startsWith("/api/submissions/") &&
-    pathname !== "/api/submissions/export.csv" &&
-    pathname !== "/api/submissions/count"
-  ) {
-    const submissionId = pathname.slice("/api/submissions/".length).trim();
-    await handleSingleSubmission(submissionId, url, request, response);
-    return;
-  }
-
-  if (request.method === "DELETE" && pathname.startsWith("/api/submissions/")) {
-    const submissionId = pathname.slice("/api/submissions/".length).trim();
-    await handleDeleteSubmission(submissionId, url, request, response);
-    return;
-  }
-
-  if (request.method === "POST" && pathname === "/api/submissions") {
-    await handleSubmission(request, response);
-    return;
-  }
-
-  if (request.method === "GET" && STORAGE_DRIVER === "local" && url.pathname.startsWith("/storage/")) {
-    await serveLocalStorageFile(url, response);
-    return;
-  }
-
-  if (request.method === "GET") {
-    const served = await serveStaticFile(url, response);
-    if (served) return;
-  }
-
-  json(response, 404, { ok: false, error: "NOT_FOUND" });
 });
 
 server.listen(PORT, HOST, () => {
