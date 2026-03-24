@@ -138,13 +138,14 @@ async function createDatabaseAdapter() {
         return result.rows[0]?.total || 0;
       },
       async listSubmissions({ limit = 100, search = "" } = {}) {
-        const normalizedLimit = Math.max(1, Math.min(Number(limit) || 100, 1000));
+        const normalizedLimit = Math.max(1, Math.min(Number(limit) || 100, 10000));
         const searchValue = `%${search.trim()}%`;
         const result = await pool.query(
           `
             SELECT * FROM submissions
             WHERE
               $1 = '%%' OR
+              id ILIKE $1 OR
               adult_name ILIKE $1 OR
               child_name ILIKE $1 OR
               adult_job ILIKE $1 OR
@@ -285,7 +286,7 @@ async function createDatabaseAdapter() {
       return row.total;
     },
     async listSubmissions({ limit = 100, search = "" } = {}) {
-      const normalizedLimit = Math.max(1, Math.min(Number(limit) || 100, 1000));
+      const normalizedLimit = Math.max(1, Math.min(Number(limit) || 100, 10000));
       const hasSearch = search.trim().length > 0;
 
       if (hasSearch) {
@@ -293,13 +294,14 @@ async function createDatabaseAdapter() {
         return db.prepare(`
           SELECT * FROM submissions
           WHERE
+            id LIKE ? OR
             adult_name LIKE ? OR
             child_name LIKE ? OR
             adult_job LIKE ? OR
             child_dream LIKE ?
           ORDER BY created_at DESC
           LIMIT ?
-        `).all(pattern, pattern, pattern, pattern, normalizedLimit);
+        `).all(pattern, pattern, pattern, pattern, pattern, normalizedLimit);
       }
 
       return db.prepare(`

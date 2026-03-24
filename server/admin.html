@@ -11,11 +11,12 @@
     <div class="topbar">
       <div>
         <h1>Back To Me Admin</h1>
-        <div class="muted">Xem submission, mở ảnh, tải CSV và xóa submission khi cần.</div>
+        <div class="muted">Xem submission, mở ảnh, tìm theo mã và tải toàn bộ ảnh khi cần.</div>
       </div>
       <div class="actions">
-        <input id="searchInput" type="search" placeholder="Tìm theo tên hoặc nghề..." />
+        <input id="searchInput" type="search" placeholder="Tìm theo mã, tên hoặc nghề..." />
         <button id="refreshButton" type="button">Làm mới</button>
+        <button id="downloadImagesButton" type="button">Tải ZIP ảnh</button>
         <button id="exportButton" type="button">Tải CSV</button>
       </div>
     </div>
@@ -45,10 +46,12 @@
     </div>
   </div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" referrerpolicy="no-referrer"></script>
   <script>
     const searchInput = document.getElementById("searchInput");
     const refreshButton = document.getElementById("refreshButton");
     const exportButton = document.getElementById("exportButton");
+    const downloadImagesButton = document.getElementById("downloadImagesButton");
     const countValue = document.getElementById("countValue");
     const statusText = document.getElementById("statusText");
     const tableBody = document.getElementById("tableBody");
@@ -94,6 +97,13 @@
         .join("");
     }
 
+    function setActionState(isBusy, message) {
+      refreshButton.disabled = isBusy;
+      exportButton.disabled = isBusy;
+      downloadImagesButton.disabled = isBusy;
+      if (message) statusText.textContent = message;
+    }
+
     async function deleteSubmission(submissionId) {
       const accepted = window.confirm(`Xóa submission ${submissionId} cùng 2 ảnh đã lưu?`);
       if (!accepted) return;
@@ -131,6 +141,81 @@
           window.open(withToken(`/print.html?id=${encodeURIComponent(submissionId)}`), "_blank");
         });
       });
+    }
+
+    async function fetchAllRowsForExport() {
+      const countResponse = await fetch(withToken("/api/submissions/count"));
+      const countPayload = await countResponse.json();
+
+      if (!countResponse.ok) {
+        throw new Error(countPayload.error || "Không thể đếm submissions.");
+      }
+
+      const total = Math.max(1, Number(countPayload.total) || 1);
+      const rowsUrl = new URL(withToken("/api/submissions"), window.location.origin);
+      rowsUrl.searchParams.set("limit", String(total));
+      const rowsResponse = await fetch(rowsUrl.toString());
+      const rowsPayload = await rowsResponse.json();
+
+      if (!rowsResponse.ok) {
+        throw new Error(rowsPayload.error || "Không thể tải danh sách ảnh.");
+      }
+
+      return rowsPayload.rows || [];
+    }
+
+    async function fetchImageBlob(imagePath) {
+      const response = await fetch(imagePath, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`Không tải được ảnh: ${imagePath}`);
+      }
+      return response.blob();
+    }
+
+    async function downloadImagesZip() {
+      if (!window.JSZip) {
+        throw new Error("Không tải được thư viện ZIP.");
+      }
+
+      setActionState(true, "Đang chuẩn bị file ảnh...");
+
+      const rows = await fetchAllRowsForExport();
+      if (!rows.length) {
+        throw new Error("Chưa có submission nào để tải ảnh.");
+      }
+
+      const zip = new JSZip();
+      let savedCount = 0;
+
+      for (let index = 0; index < rows.length; index += 1) {
+        const row = rows[index];
+        statusText.textContent = `Đang gom ảnh ${index + 1}/${rows.length}: ${row.id}`;
+
+        const imagePairs = [
+          [row.adult_card_path, `${row.id}.png`],
+          [row.child_card_path, `${row.id}-(1).png`]
+        ];
+
+        for (const [imagePath, fileName] of imagePairs) {
+          if (!imagePath) continue;
+          const imageBlob = await fetchImageBlob(imagePath);
+          zip.file(fileName, imageBlob);
+          savedCount += 1;
+        }
+      }
+
+      const archiveBlob = await zip.generateAsync({ type: "blob" });
+      const archiveUrl = URL.createObjectURL(archiveBlob);
+      const anchor = document.createElement("a");
+      anchor.href = archiveUrl;
+      anchor.download = `back-to-me-images-${new Date().toISOString().slice(0, 10)}.zip`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(archiveUrl);
+
+      statusText.textContent = `Đã tải ZIP gồm ${savedCount} ảnh.`;
+      setActionState(false);
     }
 
     async function loadRows() {
@@ -194,6 +279,12 @@
 
     exportButton.addEventListener("click", () => {
       window.open(withToken("/api/submissions/export.csv"), "_blank");
+    });
+
+    downloadImagesButton.addEventListener("click", () => {
+      downloadImagesZip().catch((error) => {
+        setActionState(false, error.message);
+      });
     });
 
     loadRows().catch((error) => {
