@@ -243,7 +243,7 @@
       const search = searchInput.value.trim();
       const listUrl = new URL(withToken("/api/submissions"), window.location.origin);
       if (search) listUrl.searchParams.set("search", search);
-      listUrl.searchParams.set("limit", "200");
+      listUrl.searchParams.set("limit", "1000");
 
       const [rowsResponse, countResponse] = await Promise.all([
         fetch(listUrl.toString()),

@@ -497,6 +497,44 @@ function wait(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
+async function postSubmissionWithRetry(formData, maxAttempts = 3) {
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/submissions`, {
+        method: "POST",
+        body: formData
+      });
+
+      if (!response.ok) {
+        let errorMessage = `Upload failed with status ${response.status}`;
+
+        try {
+          const payload = await response.json();
+          if (payload && payload.error) {
+            errorMessage = `${errorMessage}: ${payload.error}`;
+          }
+        } catch {}
+
+        throw new Error(errorMessage);
+      }
+
+      return response.json();
+    } catch (error) {
+      lastError = error;
+
+      if (attempt >= maxAttempts) {
+        break;
+      }
+
+      await wait(700 * attempt);
+    }
+  }
+
+  throw lastError || new Error("Cannot upload submission.");
+}
+
 async function waitForImages(container) {
   const images = container.querySelectorAll("img");
 
@@ -648,25 +686,7 @@ async function uploadGeneratedCardsOnce(adultCanvas, childCanvas) {
     formData.append("childPortrait", cardPayload.childImageBlob, "child-portrait.jpg");
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/submissions`, {
-    method: "POST",
-    body: formData
-  });
-
-  if (!response.ok) {
-    let errorMessage = `Upload failed with status ${response.status}`;
-
-    try {
-      const payload = await response.json();
-      if (payload && payload.error) {
-        errorMessage = `${errorMessage}: ${payload.error}`;
-      }
-    } catch {}
-
-    throw new Error(errorMessage);
-  }
-
-  const payload = await response.json();
+  const payload = await postSubmissionWithRetry(formData);
 
   updateStoredCardData({
     backendUploadedAt: new Date().toISOString(),
