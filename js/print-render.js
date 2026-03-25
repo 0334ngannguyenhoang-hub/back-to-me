@@ -35,6 +35,19 @@ function triggerDownload(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
 }
 
+function resizeCanvasToPrintSize(sourceCanvas, targetWidth = 1011, targetHeight = 638) {
+  const outputCanvas = document.createElement("canvas");
+  outputCanvas.width = targetWidth;
+  outputCanvas.height = targetHeight;
+
+  const context = outputCanvas.getContext("2d");
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+  context.drawImage(sourceCanvas, 0, 0, targetWidth, targetHeight);
+
+  return outputCanvas;
+}
+
 async function canvasToBlob(canvas) {
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
@@ -68,10 +81,12 @@ async function downloadHqCards() {
   printStatus("Đang render 2 file PNG HQ cho bản in...");
 
   try {
-    const [canvas1, canvas2] = await Promise.all([
+    const [capturedCanvas1, capturedCanvas2] = await Promise.all([
       captureCard(card1),
       captureCard(card2)
     ]);
+    const canvas1 = resizeCanvasToPrintSize(capturedCanvas1);
+    const canvas2 = resizeCanvasToPrintSize(capturedCanvas2);
     const [blob1, blob2] = await Promise.all([
       canvasToBlob(canvas1),
       canvasToBlob(canvas2)
@@ -79,7 +94,7 @@ async function downloadHqCards() {
 
     triggerDownload(blob1, "back-to-me-print-adult.png");
     setTimeout(() => triggerDownload(blob2, "back-to-me-print-child.png"), 250);
-    printStatus("Đã render xong 2 file PNG HQ. Bạn kiểm tra thư mục tải xuống nhé.");
+    printStatus("Đã render xong 2 file PNG HQ chuẩn 1011 x 638 px. Bạn kiểm tra thư mục tải xuống nhé.");
   } catch (error) {
     console.error("Cannot render HQ print cards.", error);
     printStatus("Không render được file HQ. Bạn thử lại sau khi ảnh tải xong hoàn toàn nhé.", true);

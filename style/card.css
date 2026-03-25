@@ -13,11 +13,13 @@
 .card-side{
     --card-width: 520px;
     --card-scale: 1;
+    --card-aspect-width: 1011;
+    --card-aspect-height: 638;
     position:sticky;
     top: 40px;
     align-self: flex-start;
     width:var(--card-width);
-    height:calc(var(--card-width) * 300 / 520);
+    height:calc(var(--card-width) * var(--card-aspect-height) / var(--card-aspect-width));
 
     border-radius:24px;
     overflow:hidden;
@@ -31,11 +33,13 @@
 .card-side-1{
     --card-width: 520px;
     --card-scale: 1;
+    --card-aspect-width: 1011;
+    --card-aspect-height: 638;
     position:sticky;
     top: 40px;
     align-self: flex-start;
     width:var(--card-width);
-    height:calc(var(--card-width) * 300 / 520);
+    height:calc(var(--card-width) * var(--card-aspect-height) / var(--card-aspect-width));
 
     border-radius:24px;
     overflow:hidden;
@@ -112,14 +116,14 @@
 /* title */
 
 .card-title{
-  width: 198px;
+  width: 200px;
   transform: rotate(-4deg);
 }
    
 /* logo */
 
 .card-logo{
-    width:85px;
+    width:62px;
 
 }
 
@@ -127,10 +131,10 @@
 
 .photo-child,
 .photo-adult{
-    width:140px;
-    height:170px;
-    min-width:140px;
-    min-height:170px;
+    width:148px;
+    height:180px;
+    min-width:148px;
+    min-height:180px;
 
     object-fit:cover;
     object-position:center center;
@@ -156,7 +160,7 @@
     font-family:"FPT Song Vui";
     color:#333;
     font-size:12px;
-    line-height:1.6;
+    line-height:1.55;
 
     display:flex;
     flex-direction:column;
@@ -206,7 +210,7 @@
     font-weight:700;
 
     min-width: 60px;
-    max-width: 160px;        
+    max-width: 172px;        
     text-align:left;
 
     white-space:nowrap;
@@ -227,8 +231,7 @@
 }
 
 .line-name-age span{
-
-    width:90px;
+    width:98px;
     white-space:nowrap;
     overflow:hidden;
     text-overflow:clip;
@@ -240,7 +243,7 @@
 .line-name-age span::after {
     content: '';
     display: inline-block;
-    width: 75px;
+    width: 64px;
     border-bottom: 1px dotted rgba(0,0,0,0.4);
     margin-left: 6px;
 }
@@ -251,10 +254,10 @@
 
     position:absolute;
 
-    bottom:calc(-45px * var(--card-scale));
-    left:calc(300px * var(--card-scale));
+    bottom:calc(-22px * var(--card-scale));
+    left:calc(296px * var(--card-scale));
 
-    width:calc(270px * var(--card-scale));
+    width:calc(272px * var(--card-scale));
 
     opacity:0.9;
 
@@ -262,17 +265,17 @@
 }
 
 .card-info {
-    width:475px;
-    height:260px;
+    width:486px;
+    height:292px;
     display: flex;
     flex-direction: row;
-    gap: 10px;
+    gap: 14px;
 
     contain: content;
-    margin-top: calc(20px * var(--card-scale));
+    margin-top: calc(18px * var(--card-scale));
     margin-left: calc(22px * var(--card-scale));
-    margin-right: calc(20px * var(--card-scale));
-    margin-bottom: calc(20px * var(--card-scale));
+    margin-right: calc(12px * var(--card-scale));
+    margin-bottom: calc(18px * var(--card-scale));
     transform: scale(var(--card-scale));
     transform-origin: top left;
 }
@@ -280,13 +283,15 @@
 .card-title-text {
     display: flex;
     flex-direction: column;
-    margin-right: 5px;
+    width: 294px;
+    margin-right: 0;
 }
 
 .card-header-top {
     display: flex;
     align-items: center;
-    gap: 15px; 
+    gap: 10px;
+    margin-bottom: 6px;
 }
 
 
@@ -294,8 +299,8 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 190px;
-    height: 270px;
+    width: 176px;
+    height: 292px;
 }
 
 @media (max-width: 900px) {

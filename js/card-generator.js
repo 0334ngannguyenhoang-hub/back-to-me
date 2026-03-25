@@ -7,6 +7,8 @@ const API_BASE_URL =
 const CARD_DB_NAME = "backToMeDemo";
 const CARD_STORE_NAME = "cards";
 const CARD_RECORD_KEY = "latestCard";
+const CARD_PRINT_WIDTH = 1011;
+const CARD_PRINT_HEIGHT = 638;
 
 function getRuntimeProfile() {
   const userAgent = navigator.userAgent || "";
@@ -41,8 +43,8 @@ function getGifConfig() {
 
   if (profile.lowMemory) {
     return {
-      width: 468,
-      height: 270,
+      width: 404,
+      height: 255,
       frames: 10,
       delay: 40,
       workers: 1,
@@ -53,8 +55,8 @@ function getGifConfig() {
 
   if (profile.isMobile) {
     return {
-      width: 520,
-      height: 300,
+      width: 506,
+      height: 319,
       frames: 14,
       delay: 34,
       workers: 1,
@@ -64,8 +66,8 @@ function getGifConfig() {
   }
 
   return {
-      width: 520,
-      height: 300,
+      width: 506,
+      height: 319,
       frames: 16,
       delay: 30,
       workers: 2,
@@ -88,8 +90,8 @@ function getVideoConfig() {
 
   if (profile.lowMemory) {
     return {
-      width: 780,
-      height: 450,
+      width: 758,
+      height: 478,
       fps: 24,
       bitrate: 7_500_000,
       captureScale: 2,
@@ -101,8 +103,8 @@ function getVideoConfig() {
 
   if (profile.isMobile) {
     return {
-      width: 1040,
-      height: 600,
+      width: CARD_PRINT_WIDTH,
+      height: CARD_PRINT_HEIGHT,
       fps: 30,
       bitrate: 12_000_000,
       captureScale: 3,
@@ -113,8 +115,8 @@ function getVideoConfig() {
   }
 
   return {
-    width: 1040,
-    height: 600,
+    width: CARD_PRINT_WIDTH,
+    height: CARD_PRINT_HEIGHT,
     fps: 30,
     bitrate: 16_000_000,
     captureScale: 3,
