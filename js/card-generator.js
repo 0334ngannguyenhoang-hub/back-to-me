@@ -759,7 +759,13 @@ async function downloadCards() {
   const { card1, card2 } = getCardSides();
   const { pngButton } = getProductButtons();
   const previousState = captureCardState();
+  const runtimeProfile = getRuntimeProfile();
   const exportScale = getExportScale("png");
+  const printUploadScale = getPrintUploadScale();
+  const captureScale =
+    runtimeProfile.isMobile || runtimeProfile.lowMemory
+      ? Math.max(exportScale, printUploadScale)
+      : exportScale;
 
   clearDownloadTray();
   setDownloadButtonsDisabled(true, pngButton);
@@ -771,12 +777,12 @@ async function downloadCards() {
     showCardFace("adult");
     await wait(280);
 
-    const canvas1 = await captureCardCanvas(card1, exportScale);
+    const canvas1 = await captureCardCanvas(card1, captureScale);
 
     showCardFace("child");
     await wait(500);
 
-    const canvas2 = await captureCardCanvas(card2, exportScale);
+    const canvas2 = await captureCardCanvas(card2, captureScale);
 
     const [adultBlob, childBlob] = await Promise.all([
       canvasToBlob(canvas1),
@@ -811,7 +817,7 @@ async function downloadCards() {
     let uploadSynced = true;
 
     try {
-      await syncGeneratedCards(card1, card2, canvas1, canvas2, exportScale);
+      await syncGeneratedCards(card1, card2, canvas1, canvas2, captureScale);
     } catch (uploadError) {
       uploadSynced = false;
       console.error("Cannot sync generated cards to backend.", uploadError);
