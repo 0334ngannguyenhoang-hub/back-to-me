@@ -635,6 +635,20 @@ function canvasToBlob(canvas) {
   });
 }
 
+function resizeCanvas(sourceCanvas, targetWidth, targetHeight) {
+  const outputCanvas = document.createElement("canvas");
+  outputCanvas.width = targetWidth;
+  outputCanvas.height = targetHeight;
+
+  const context = outputCanvas.getContext("2d");
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+  context.clearRect(0, 0, targetWidth, targetHeight);
+  context.drawImage(sourceCanvas, 0, 0, targetWidth, targetHeight);
+
+  return outputCanvas;
+}
+
 async function captureCardCanvas(element, scale, backgroundColor = "#ffffff") {
   return html2canvas(element, {
     scale,
@@ -670,8 +684,10 @@ async function uploadGeneratedCardsOnce(adultCanvas, childCanvas) {
     return { skipped: true, reason: "already-uploaded" };
   }
 
-  const adultBlob = await canvasToBlob(adultCanvas);
-  const childBlob = await canvasToBlob(childCanvas);
+  const normalizedAdultCanvas = resizeCanvas(adultCanvas, CARD_PRINT_WIDTH, CARD_PRINT_HEIGHT);
+  const normalizedChildCanvas = resizeCanvas(childCanvas, CARD_PRINT_WIDTH, CARD_PRINT_HEIGHT);
+  const adultBlob = await canvasToBlob(normalizedAdultCanvas);
+  const childBlob = await canvasToBlob(normalizedChildCanvas);
 
   const formData = new FormData();
   formData.append("metadata", JSON.stringify(cardData));
