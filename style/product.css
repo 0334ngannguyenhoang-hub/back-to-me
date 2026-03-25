@@ -147,6 +147,35 @@ body {
     background: #d40191;
 }
 
+.submit-guide {
+    width: min(92vw, 680px);
+    margin: 20px auto 0;
+    padding: 20px 22px;
+    border-radius: 24px;
+    background: rgba(255, 249, 242, 0.94);
+    box-shadow: 0 16px 34px rgba(81, 48, 29, 0.12);
+    color: #51301D;
+}
+
+.submit-guide-title {
+    margin: 0 0 10px;
+    color: #B12301;
+    font-size: 24px;
+    line-height: 1.15;
+}
+
+.submit-guide-text,
+.submit-guide-note {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.55;
+}
+
+.submit-guide-note {
+    margin-top: 10px;
+    font-weight: 700;
+}
+
 .back-link {
     color: #7a2eb8;
     font-weight: 700;
@@ -233,6 +262,22 @@ body {
         padding: 10px 12px;
         font-size: 13px;
     }
+
+    .submit-guide {
+        width: min(86vw, 360px);
+        margin-top: 16px;
+        padding: 16px 16px 18px;
+    }
+
+    .submit-guide-title {
+        font-size: 20px;
+    }
+
+    .submit-guide-text,
+    .submit-guide-note {
+        font-size: 14px;
+        line-height: 1.45;
+    }
 }
 
 @media (max-width: 480px) {
@@ -262,5 +307,15 @@ body {
     .download-link {
         width: 100%;
         min-width: 0;
+    }
+
+    .submit-guide {
+        width: min(88vw, 320px);
+        padding: 14px 14px 16px;
+        border-radius: 20px;
+    }
+
+    .submit-guide-title {
+        font-size: 18px;
     }
 }

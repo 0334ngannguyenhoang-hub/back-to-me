@@ -677,10 +677,18 @@ async function uploadGeneratedCardsOnce(adultCanvas, childCanvas) {
       : (cardPayload ? buildLightweightCardData(cardPayload) : null);
 
   if (!cardData || !cardData.submissionId) {
-    return { skipped: true, reason: "missing-card-data" };
+    throw new Error("MISSING_CARD_DATA");
   }
 
-  if (cardData.backendUploadedAt || (cardPayload && cardPayload.backendUploadedAt)) {
+  if (!storedCardData && cardPayload) {
+    localStorage.setItem(CARD_DATA_KEY, JSON.stringify(buildLightweightCardData(cardPayload)));
+  }
+
+  const alreadyUploaded =
+    (cardData.backendUploadedAt && cardData.backendSubmissionId) ||
+    (cardPayload && cardPayload.backendUploadedAt && cardPayload.backendSubmissionId);
+
+  if (alreadyUploaded) {
     return { skipped: true, reason: "already-uploaded" };
   }
 
@@ -850,26 +858,10 @@ async function downloadCards() {
       setTimeout(() => downloadLinks[1].click(), 300);
     }
 
-    let uploadSynced = true;
-
-    try {
-      await syncGeneratedCards(card1, card2, canvas1, canvas2, captureScale);
-    } catch (uploadError) {
-      uploadSynced = false;
-      console.error("Cannot sync generated cards to backend.", uploadError);
-    }
-
-    if (uploadSynced) {
-      setProductMessage(
-        "Hệ thống đang tải 2 ảnh PNG. Nếu trình duyệt chặn một ảnh, bạn bấm nút còn lại ngay bên dưới nhé. Bản in cũng đã được lưu lên hệ thống.",
-        "is-success"
-      );
-    } else {
-      setProductMessage(
-        "Hệ thống đang tải 2 ảnh PNG. Nếu trình duyệt chặn một ảnh, bạn bấm nút còn lại ngay bên dưới nhé.",
-        "is-success"
-      );
-    }
+    setProductMessage(
+      "Hệ thống đang tải 2 ảnh PNG. Nếu trình duyệt chặn một ảnh, bạn bấm nút còn lại ngay bên dưới nhé. Sau đó hãy upload đúng 2 ảnh này vào Google Form đăng ký.",
+      "is-success"
+    );
   } catch (error) {
     console.error("Cannot export PNG cards.", error);
     setProductMessage("Tải 2 ảnh PNG chưa thành công. Với điện thoại yếu, bạn hãy mở lại bằng trình duyệt ngoài Messenger nhé.", "is-error");
@@ -970,8 +962,6 @@ async function downloadVideo() {
   const { gifButton } = getProductButtons();
   const previousState = captureCardState();
   const config = getVideoConfig();
-  let uploadSynced = true;
-
   setDownloadButtonsDisabled(true, gifButton);
   setProductMessage("Đang render video chất lượng cao...", "is-loading");
 
@@ -985,13 +975,6 @@ async function downloadVideo() {
     showCardFace("child");
     await wait(320);
     const childCanvas = await captureCardCanvas(card2, config.captureScale);
-
-    try {
-      await syncGeneratedCards(card1, card2, adultCanvas, childCanvas, config.captureScale);
-    } catch (uploadError) {
-      uploadSynced = false;
-      console.error("Cannot sync generated video cards to backend.", uploadError);
-    }
 
     const outputCanvas = document.createElement("canvas");
     outputCanvas.width = config.width;
@@ -1016,12 +999,10 @@ async function downloadVideo() {
     link.click();
     setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
 
-    if (!uploadSynced) {
-      setProductMessage("Video đã tải được, nhưng submission chưa lưu lên admin. Bạn hãy bấm Tải 2 ảnh PNG thêm một lần để đồng bộ nhé.", "is-error");
-    } else if (format.extension !== "mp4") {
+    if (format.extension !== "mp4") {
       setProductMessage("Video đã được xuất ở định dạng WEBM vì trình duyệt này không ghi MP4 ổn định trực tiếp. WEBM này sẽ mở đúng hơn file MP4 lỗi.", "is-success");
     } else {
-      setProductMessage("Đã xuất xong video MP4 chất lượng cao. Bạn kiểm tra thư mục tải xuống nhé.", "is-success");
+      setProductMessage("Đã xuất xong video chất lượng cao. Bạn kiểm tra thư mục tải xuống nhé.", "is-success");
     }
   } catch (error) {
     console.error("Cannot export video.", error);
