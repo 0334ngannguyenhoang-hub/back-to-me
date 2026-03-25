@@ -83,6 +83,53 @@ button {
       font-weight: 600;
       line-height: 1.5;
     }
+    .audit-panel {
+      margin-bottom: 18px;
+      padding: 16px 18px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+    }
+    .audit-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .audit-list {
+      display: grid;
+      gap: 10px;
+    }
+    .audit-item {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff6ee;
+    }
+    .audit-code code {
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .audit-issues {
+      display: grid;
+      gap: 4px;
+      font-size: 14px;
+      line-height: 1.45;
+      color: #7a2917;
+    }
+    .audit-ok {
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: #eefbf1;
+      border: 1px solid rgba(42, 133, 76, 0.18);
+      color: #1f6b3a;
+      font-weight: 600;
+    }
     .table-wrap {
       overflow: auto;
       background: var(--panel);
@@ -127,4 +174,9 @@ button {
     }
     .danger-button:hover {
       filter: brightness(1.06);
+    }
+    @media (max-width: 900px) {
+      .audit-item {
+        grid-template-columns: 1fr;
+      }
     }

@@ -16,6 +16,7 @@
       <div class="actions">
         <input id="searchInput" type="search" placeholder="Tìm theo mã, tên hoặc nghề..." />
         <button id="refreshButton" type="button">Làm mới</button>
+        <button id="auditButton" type="button">Kiểm tra lỗi/chưa sync</button>
         <button id="downloadImagesButton" type="button">Tải ZIP ảnh</button>
         <button id="exportButton" type="button">Tải CSV</button>
       </div>
@@ -24,6 +25,14 @@
     <div class="stats">
       <div><strong id="countValue">0</strong> submissions</div>
       <div class="muted" id="statusText">Đang tải dữ liệu...</div>
+    </div>
+
+    <div id="auditPanel" class="audit-panel" hidden>
+      <div class="audit-header">
+        <strong id="auditTitle">Kiểm tra submission</strong>
+        <span id="auditSummary" class="muted"></span>
+      </div>
+      <div id="auditList" class="audit-list"></div>
     </div>
 
     <div id="healthWarning" class="warning-banner" hidden></div>
@@ -52,11 +61,16 @@
   <script>
     const searchInput = document.getElementById("searchInput");
     const refreshButton = document.getElementById("refreshButton");
+    const auditButton = document.getElementById("auditButton");
     const exportButton = document.getElementById("exportButton");
     const downloadImagesButton = document.getElementById("downloadImagesButton");
     const countValue = document.getElementById("countValue");
     const statusText = document.getElementById("statusText");
     const healthWarning = document.getElementById("healthWarning");
+    const auditPanel = document.getElementById("auditPanel");
+    const auditTitle = document.getElementById("auditTitle");
+    const auditSummary = document.getElementById("auditSummary");
+    const auditList = document.getElementById("auditList");
     const tableBody = document.getElementById("tableBody");
     const adminToken = new URLSearchParams(window.location.search).get("token") || "";
 
@@ -102,9 +116,36 @@
 
     function setActionState(isBusy, message) {
       refreshButton.disabled = isBusy;
+      auditButton.disabled = isBusy;
       exportButton.disabled = isBusy;
       downloadImagesButton.disabled = isBusy;
       if (message) statusText.textContent = message;
+    }
+
+    function clearAuditPanel() {
+      auditPanel.hidden = true;
+      auditSummary.textContent = "";
+      auditList.innerHTML = "";
+    }
+
+    function renderAuditResults(items, totalChecked) {
+      auditPanel.hidden = false;
+
+      if (!items.length) {
+        auditTitle.textContent = "Kiểm tra submission";
+        auditSummary.textContent = `Đã quét ${totalChecked} submission. Không phát hiện submission lỗi/chưa sync.`;
+        auditList.innerHTML = '<div class="audit-ok">Tất cả submission hiện tại đều có đủ 2 ảnh card và ảnh mở được bình thường.</div>';
+        return;
+      }
+
+      auditTitle.textContent = "Submission cần kiểm tra lại";
+      auditSummary.textContent = `Phát hiện ${items.length}/${totalChecked} submission có vấn đề.`;
+      auditList.innerHTML = items.map((item) => `
+        <div class="audit-item">
+          <div class="audit-code"><code>${escapeHtml(item.id)}</code></div>
+          <div class="audit-issues">${item.issues.map((issue) => `<div>${escapeHtml(issue)}</div>`).join("")}</div>
+        </div>
+      `).join("");
     }
 
     async function deleteSubmission(submissionId) {
@@ -190,6 +231,92 @@
         throw new Error(`Không tải được ảnh: ${imagePath}`);
       }
       return response.blob();
+    }
+
+    async function checkImageReachable(imagePath) {
+      if (!imagePath) return false;
+
+      try {
+        const headResponse = await fetch(imagePath, {
+          method: "HEAD",
+          cache: "no-store"
+        });
+
+        if (headResponse.ok) {
+          return true;
+        }
+      } catch {}
+
+      try {
+        const response = await fetch(imagePath, { cache: "no-store" });
+        return response.ok;
+      } catch {
+        return false;
+      }
+    }
+
+    async function runWithConcurrency(items, worker, concurrency = 6) {
+      const queue = Array.from(items);
+      const results = [];
+
+      async function consume() {
+        while (queue.length) {
+          const nextItem = queue.shift();
+          if (!nextItem) return;
+          const result = await worker(nextItem);
+          if (result) {
+            results.push(result);
+          }
+        }
+      }
+
+      await Promise.all(Array.from({ length: Math.min(concurrency, items.length || 1) }, consume));
+      return results;
+    }
+
+    async function auditSubmissions() {
+      setActionState(true, "Đang quét submission lỗi/chưa sync...");
+      clearAuditPanel();
+
+      const rows = await fetchAllRowsForExport();
+      if (!rows.length) {
+        renderAuditResults([], 0);
+        setActionState(false, "Chưa có submission nào để kiểm tra.");
+        return;
+      }
+
+      const problematic = await runWithConcurrency(rows, async (row, index) => {
+        statusText.textContent = `Đang kiểm tra ${row.id}...`;
+        const issues = [];
+
+        if (!row.adult_card_path) {
+          issues.push("Thiếu ảnh card người lớn.");
+        } else if (!(await checkImageReachable(row.adult_card_path))) {
+          issues.push("Ảnh card người lớn bị lỗi hoặc không mở được.");
+        }
+
+        if (!row.child_card_path) {
+          issues.push("Thiếu ảnh card hồi bé.");
+        } else if (!(await checkImageReachable(row.child_card_path))) {
+          issues.push("Ảnh card hồi bé bị lỗi hoặc không mở được.");
+        }
+
+        if (!row.adult_portrait_path || !row.child_portrait_path) {
+          issues.push("Thiếu portrait crop cho HQ render.");
+        }
+
+        if (!issues.length) {
+          return null;
+        }
+
+        return {
+          id: row.id,
+          issues
+        };
+      });
+
+      renderAuditResults(problematic, rows.length);
+      setActionState(false, problematic.length ? "Đã quét xong submission lỗi/chưa sync." : "Đã quét xong, không phát hiện lỗi.");
     }
 
     async function downloadImagesZip() {
@@ -284,6 +411,7 @@
     }
 
     refreshButton.addEventListener("click", () => {
+      clearAuditPanel();
       loadRows().catch((error) => {
         statusText.textContent = error.message;
       });
@@ -299,6 +427,12 @@
 
     exportButton.addEventListener("click", () => {
       window.open(withToken("/api/submissions/export.csv"), "_blank");
+    });
+
+    auditButton.addEventListener("click", () => {
+      auditSubmissions().catch((error) => {
+        setActionState(false, error.message);
+      });
     });
 
     downloadImagesButton.addEventListener("click", () => {
