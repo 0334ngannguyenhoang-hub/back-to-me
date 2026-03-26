@@ -96,8 +96,8 @@ function getVideoConfig() {
       bitrate: 7_500_000,
       captureScale: 2,
       holdMs: 1700,
-      transitionMs: 1100,
-      pauseMs: 2400
+      transitionMs: 1400,
+      pauseMs: 3800
     };
   }
 
@@ -109,8 +109,8 @@ function getVideoConfig() {
       bitrate: 12_000_000,
       captureScale: 3,
       holdMs: 1700,
-      transitionMs: 1100,
-      pauseMs: 2400
+      transitionMs: 1400,
+      pauseMs: 3800
     };
   }
 
@@ -121,8 +121,8 @@ function getVideoConfig() {
     bitrate: 16_000_000,
     captureScale: 3,
     holdMs: 1700,
-    transitionMs: 1100,
-    pauseMs: 2400
+    transitionMs: 1400,
+    pauseMs: 3800
   };
 }
 
@@ -885,6 +885,15 @@ function drawVideoFrame(context, outputCanvas, adultCanvas, childCanvas, progres
   context.globalAlpha = 1;
 }
 
+function easeInOutCubic(value) {
+  if (value <= 0) return 0;
+  if (value >= 1) return 1;
+
+  return value < 0.5
+    ? 4 * value * value * value
+    : 1 - Math.pow(-2 * value + 2, 3) / 2;
+}
+
 async function recordCanvasSequence(outputCanvas, drawStep, format, config) {
   const stream = outputCanvas.captureStream(config.fps);
   const chunks = [];
@@ -923,7 +932,8 @@ async function playVideoSequence(config, outputCanvas, context, adultCanvas, chi
   }
 
   for (let i = 0; i <= transitionFrames; i += 1) {
-    drawVideoFrame(context, outputCanvas, adultCanvas, childCanvas, i / transitionFrames);
+    const progress = easeInOutCubic(i / transitionFrames);
+    drawVideoFrame(context, outputCanvas, adultCanvas, childCanvas, progress);
     await wait(frameMs);
   }
 
@@ -933,7 +943,8 @@ async function playVideoSequence(config, outputCanvas, context, adultCanvas, chi
   }
 
   for (let i = 0; i <= transitionFrames; i += 1) {
-    drawVideoFrame(context, outputCanvas, childCanvas, adultCanvas, i / transitionFrames);
+    const progress = easeInOutCubic(i / transitionFrames);
+    drawVideoFrame(context, outputCanvas, childCanvas, adultCanvas, progress);
     await wait(frameMs);
   }
 
