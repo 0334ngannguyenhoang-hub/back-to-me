@@ -649,7 +649,7 @@ function resizeCanvas(sourceCanvas, targetWidth, targetHeight) {
   return outputCanvas;
 }
 
-async function captureCardCanvas(element, scale, backgroundColor = "#ffffff") {
+async function captureCardCanvas(element, scale, backgroundColor = null) {
   return html2canvas(element, {
     scale,
     useCORS: true,
