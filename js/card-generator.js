@@ -139,15 +139,9 @@ function getSupportedVideoFormat() {
   const candidates = isSafariFamily
     ? [
         { mimeType: "video/mp4;codecs=h264", extension: "mp4" },
-        { mimeType: "video/mp4", extension: "mp4" },
-        { mimeType: "video/webm;codecs=vp8", extension: "webm" },
-        { mimeType: "video/webm", extension: "webm" }
+        { mimeType: "video/mp4", extension: "mp4" }
       ]
-    : [
-        { mimeType: "video/webm;codecs=vp9", extension: "webm" },
-        { mimeType: "video/webm;codecs=vp8", extension: "webm" },
-        { mimeType: "video/webm", extension: "webm" }
-      ];
+    : [];
 
   for (const candidate of candidates) {
     if (MediaRecorder.isTypeSupported(candidate.mimeType)) {
@@ -410,9 +404,7 @@ async function generateCard() {
     await saveCardPayload({
       ...data,
       adultImageBlob: files.adultImage && files.adultImage.blob ? files.adultImage.blob : files.adultImage,
-      childImageBlob: files.childImage && files.childImage.blob ? files.childImage.blob : files.childImage,
-      adultRenderUrl: files.adultImage && files.adultImage.dataUrl ? files.adultImage.dataUrl : data.adultImg,
-      childRenderUrl: files.childImage && files.childImage.dataUrl ? files.childImage.dataUrl : data.childImg
+      childImageBlob: files.childImage && files.childImage.blob ? files.childImage.blob : files.childImage
     });
 
     localStorage.setItem(CARD_DATA_KEY, JSON.stringify(buildLightweightCardData(data)));
@@ -913,8 +905,12 @@ async function recordCanvasSequence(outputCanvas, drawStep, format, config) {
     recorder.onerror = () => reject(new Error("Video recording failed."));
   });
 
-  recorder.start();
+  recorder.start(250);
   await drawStep();
+  await wait(180);
+  if (typeof recorder.requestData === "function" && recorder.state === "recording") {
+    recorder.requestData();
+  }
   recorder.stop();
 
   return finished;
@@ -965,7 +961,7 @@ async function downloadVideo() {
 
   const format = getSupportedVideoFormat();
   if (!format) {
-    showProductBlockingNotice("Trình duyệt này chưa hỗ trợ xuất video trực tiếp. Bạn hãy thử bằng Chrome hoặc Safari nhé.");
+    showProductBlockingNotice("Thiết bị này chưa xuất được video MP4 ổn định để đăng story Instagram. Bạn hãy mở link bằng Safari trên iPhone/iPad hoặc Safari trên Mac nhé.");
     return;
   }
 
@@ -1010,11 +1006,7 @@ async function downloadVideo() {
     link.click();
     setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
 
-    if (format.extension !== "mp4") {
-      setProductMessage("Video đã được xuất ở định dạng WEBM vì trình duyệt này không ghi MP4 ổn định trực tiếp. WEBM này sẽ mở đúng hơn file MP4 lỗi.", "is-success");
-    } else {
-      setProductMessage("Đã xuất xong video chất lượng cao. Bạn kiểm tra thư mục tải xuống nhé.", "is-success");
-    }
+    setProductMessage("Đã xuất xong video MP4 chất lượng cao để đăng story. Bạn kiểm tra thư mục tải xuống nhé.", "is-success");
   } catch (error) {
     console.error("Cannot export video.", error);
     setProductMessage("Xuất video chưa thành công. Bạn hãy thử lại bằng Chrome hoặc Safari nhé.", "is-error");

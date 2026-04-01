@@ -53,68 +53,62 @@ async function canvasToBlob(canvas, type, quality) {
   });
 }
 
-function readBlobAsDataUrl(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error("Cannot read processed image."));
-    reader.readAsDataURL(blob);
-  });
-}
-
 async function createCardImageAsset(file, targetWidth, targetHeight) {
   const { scale, quality } = getCardImageOptions();
 
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
+    const sourceUrl = URL.createObjectURL(file);
+    const image = new Image();
 
-    reader.onload = () => {
-      const image = new Image();
+    image.onload = async () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = targetWidth * scale;
+        canvas.height = targetHeight * scale;
 
-      image.onload = async () => {
-        try {
-          const canvas = document.createElement("canvas");
-          canvas.width = targetWidth * scale;
-          canvas.height = targetHeight * scale;
+        const context = canvas.getContext("2d");
+        const outputWidth = canvas.width;
+        const outputHeight = canvas.height;
+        const drawScale = Math.max(outputWidth / image.width, outputHeight / image.height);
+        const drawWidth = image.width * drawScale;
+        const drawHeight = image.height * drawScale;
+        const offsetX = (outputWidth - drawWidth) / 2;
+        const offsetY = (outputHeight - drawHeight) / 2;
 
-          const context = canvas.getContext("2d");
-          const outputWidth = canvas.width;
-          const outputHeight = canvas.height;
-          const drawScale = Math.max(outputWidth / image.width, outputHeight / image.height);
-          const drawWidth = image.width * drawScale;
-          const drawHeight = image.height * drawScale;
-          const offsetX = (outputWidth - drawWidth) / 2;
-          const offsetY = (outputHeight - drawHeight) / 2;
+        context.imageSmoothingEnabled = true;
+        context.imageSmoothingQuality = "high";
+        context.clearRect(0, 0, outputWidth, outputHeight);
+        context.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
 
-          context.imageSmoothingEnabled = true;
-          context.imageSmoothingQuality = "high";
-          context.clearRect(0, 0, outputWidth, outputHeight);
-          context.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
+        const blob = await canvasToBlob(canvas, "image/jpeg", quality);
+        const objectUrl = URL.createObjectURL(blob);
 
-          const blob = await canvasToBlob(canvas, "image/jpeg", quality);
-          const dataUrl = await readBlobAsDataUrl(blob);
-
-          resolve({
-            blob,
-            dataUrl,
-            width: outputWidth,
-            height: outputHeight
-          });
-        } catch (error) {
-          reject(error);
-        }
-      };
-
-      image.onerror = () => reject(new Error("Cannot read selected image."));
-      image.src = reader.result;
+        resolve({
+          blob,
+          objectUrl,
+          width: outputWidth,
+          height: outputHeight
+        });
+      } catch (error) {
+        reject(error);
+      } finally {
+        URL.revokeObjectURL(sourceUrl);
+      }
     };
 
-    reader.onerror = () => reject(new Error("Cannot load image file."));
-    reader.readAsDataURL(file);
+    image.onerror = () => {
+      URL.revokeObjectURL(sourceUrl);
+      reject(new Error("Cannot read selected image."));
+    };
+    image.src = sourceUrl;
   });
 }
 
 function setProcessedCardImage(inputId, asset) {
+  const previousAsset = window.backToMeImageCache[inputId];
+  if (previousAsset && previousAsset.objectUrl) {
+    URL.revokeObjectURL(previousAsset.objectUrl);
+  }
   window.backToMeImageCache[inputId] = asset;
 }
 
@@ -140,7 +134,7 @@ function updateImagePreview(inputId, imgId) {
     try {
       const processedImage = await createCardImageAsset(file, 140, 170);
       setProcessedCardImage(inputId, processedImage);
-      img.src = processedImage.dataUrl;
+      img.src = processedImage.objectUrl;
     } catch (error) {
       console.error("Cannot prepare preview image.", error);
       setProcessedCardImage(inputId, null);
