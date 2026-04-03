@@ -105,13 +105,26 @@ function getVideoConfig() {
     };
   }
 
+  if (profile.isAndroid) {
+    return {
+      width: CARD_PRINT_WIDTH,
+      height: CARD_PRINT_HEIGHT,
+      fps: 30,
+      bitrate: 12_000_000,
+      captureScale: 2,
+      holdMs: 1700,
+      transitionMs: 1400,
+      pauseMs: 3800
+    };
+  }
+
   if (profile.isMobile) {
     return {
       width: CARD_PRINT_WIDTH,
       height: CARD_PRINT_HEIGHT,
       fps: 30,
       bitrate: 12_000_000,
-      captureScale: 3,
+      captureScale: 2.5,
       holdMs: 1700,
       transitionMs: 1400,
       pauseMs: 3800
@@ -593,7 +606,7 @@ function setDownloadTray(items) {
   tray.hidden = items.length === 0;
 }
 
-function canvasToBlob(canvas) {
+function canvasToBlob(canvas, type = "image/png", quality) {
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (!blob) {
@@ -601,7 +614,7 @@ function canvasToBlob(canvas) {
         return;
       }
       resolve(blob);
-    }, "image/png");
+    }, type, quality);
   });
 }
 
@@ -986,13 +999,13 @@ async function downloadVideo() {
     );
 
     const [adultBlob, childBlob] = await Promise.all([
-      canvasToBlob(adultCanvas),
-      canvasToBlob(childCanvas)
+      canvasToBlob(adultCanvas, "image/jpeg", 0.94),
+      canvasToBlob(childCanvas, "image/jpeg", 0.94)
     ]);
 
     const formData = new FormData();
-    formData.append("adultCard", adultBlob, "adult-card.png");
-    formData.append("childCard", childBlob, "child-card.png");
+    formData.append("adultCard", adultBlob, "adult-card.jpg");
+    formData.append("childCard", childBlob, "child-card.jpg");
 
     const videoBlob = await fetchRenderedVideo(formData);
 
@@ -1006,7 +1019,8 @@ async function downloadVideo() {
     setProductMessage("Đã xuất xong video MP4 chất lượng cao để đăng story. Bạn kiểm tra thư mục tải xuống nhé.", "is-success");
   } catch (error) {
     console.error("Cannot export video.", error);
-    setProductMessage("Xuất video MP4 chưa thành công. Bạn hãy thử lại sau ít phút nhé.", "is-error");
+    const detail = error && error.message ? ` (${error.message})` : "";
+    setProductMessage(`Xuất video MP4 chưa thành công.${detail}`, "is-error");
   } finally {
     resetCardFace();
     restoreCardState(previousState);
