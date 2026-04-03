@@ -94,25 +94,23 @@ function triggerBlobDownload(blob, filename) {
   const objectUrl = URL.createObjectURL(blob);
 
   if (profile.isAndroid) {
-    // For Android, append link to DOM and click - this is more reliable
-    // than creating/clicking in memory on mobile browsers
-    const link = document.createElement("a");
-    link.href = objectUrl;
-    link.download = filename;
-    link.style.display = "none";
-    
-    document.body.appendChild(link);
-    
-    // Use a small delay to ensure DOM is updated
-    setTimeout(() => {
-      link.click();
-    }, 100);
-    
-    // Remove link and revoke URL after download starts
-    setTimeout(() => {
-      document.body.removeChild(link);
-      URL.revokeObjectURL(objectUrl);
-    }, 3000);
+    // For Android, try window.open with blob URL - more reliable than anchor click
+    try {
+      window.open(objectUrl, '_blank');
+    } catch (error) {
+      console.warn('window.open failed, falling back to anchor click', error);
+      // Fallback to anchor method
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = filename;
+      link.style.display = "none";
+      document.body.appendChild(link);
+      setTimeout(() => link.click(), 100);
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(objectUrl);
+      }, 3000);
+    }
   } else {
     // For desktop browsers, use the traditional method (faster)
     const link = document.createElement("a");
@@ -120,6 +118,53 @@ function triggerBlobDownload(blob, filename) {
     link.download = filename;
     link.click();
     setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
+  }
+}
+
+function triggerFormDownload(formData, filename) {
+  const profile = getRuntimeProfile();
+  
+  if (profile.isAndroid) {
+    // For Android, use form POST with target="_blank" to trigger download
+    // This bypasses blob URL issues on mobile browsers
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = `${API_BASE_URL}/api/render-video`;
+    form.target = "_blank";
+    form.style.display = "none";
+    
+    // Append FormData entries to form
+    for (const [key, value] of formData.entries()) {
+      if (value instanceof Blob) {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.name = key;
+        // Create a new File from blob with proper name
+        const file = new File([value], value.name || key, { type: value.type });
+        // Note: Can't directly set files on input, need to use DataTransfer
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        input.files = dt.files;
+        form.appendChild(input);
+      } else {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = key;
+        input.value = value;
+        form.appendChild(input);
+      }
+    }
+    
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+  } else {
+    // For desktop, use blob method
+    fetchRenderedVideo(formData).then(blob => {
+      triggerBlobDownload(blob, filename);
+    }).catch(error => {
+      throw error;
+    });
   }
 }
 
@@ -653,28 +698,42 @@ function canvasToBlob(canvas, type = "image/png", quality) {
 }
 
 async function fetchRenderedVideo(formData) {
-  const response = await fetch(`${API_BASE_URL}/api/render-video`, {
-    method: "POST",
-    body: formData
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
 
-  if (!response.ok) {
-    let errorMessage = `Video render failed with status ${response.status}`;
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/render-video`, {
+      method: "POST",
+      body: formData,
+      signal: controller.signal
+    });
 
-    try {
-      const payload = await response.json();
-      if (payload && payload.error) {
-        errorMessage = `${errorMessage}: ${payload.error}`;
-      }
-      if (payload && payload.message) {
-        errorMessage = `${errorMessage} (${payload.message})`;
-      }
-    } catch {}
+    clearTimeout(timeoutId);
 
-    throw new Error(errorMessage);
+    if (!response.ok) {
+      let errorMessage = `Video render failed with status ${response.status}`;
+
+      try {
+        const payload = await response.json();
+        if (payload && payload.error) {
+          errorMessage = `${errorMessage}: ${payload.error}`;
+        }
+        if (payload && payload.message) {
+          errorMessage = `${errorMessage} (${payload.message})`;
+        }
+      } catch {}
+
+      throw new Error(errorMessage);
+    }
+
+    return response.blob();
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error('Video render timeout - server quá tải hoặc mất kết nối. Hãy thử lại sau.');
+    }
+    throw error;
   }
-
-  return response.blob();
 }
 
 function resizeCanvas(sourceCanvas, targetWidth, targetHeight) {
@@ -1044,14 +1103,25 @@ async function downloadVideo() {
     formData.append("adultCard", adultBlob, "adult-card.jpg");
     formData.append("childCard", childBlob, "child-card.jpg");
 
+    console.log("Starting video render fetch...");
     const videoBlob = await fetchRenderedVideo(formData);
+    console.log("Video blob received, size:", videoBlob.size);
+    
     triggerBlobDownload(videoBlob, "back-to-me-card.mp4");
 
     setProductMessage("Đã xuất xong video MP4 chất lượng cao để đăng story. Bạn kiểm tra thư mục tải xuống nhé.", "is-success");
   } catch (error) {
     console.error("Cannot export video.", error);
     const detail = error && error.message ? ` (${error.message})` : "";
-    setProductMessage(`Xuất video MP4 chưa thành công.${detail}`, "is-error");
+    const isAndroid = getRuntimeProfile().isAndroid;
+    
+    if (isAndroid && error.message.includes('timeout')) {
+      setProductMessage(`Server đang quá tải. Với điện thoại Android, video render có thể mất thời gian lâu hơn. Hãy thử lại sau 2-3 phút nhé.${detail}`, "is-error");
+    } else if (isAndroid) {
+      setProductMessage(`Xuất video MP4 chưa thành công trên Android. Hãy thử lại bằng trình duyệt Chrome và đảm bảo có đủ bộ nhớ.${detail}`, "is-error");
+    } else {
+      setProductMessage(`Xuất video MP4 chưa thành công.${detail}`, "is-error");
+    }
   } finally {
     resetCardFace();
     restoreCardState(previousState);
