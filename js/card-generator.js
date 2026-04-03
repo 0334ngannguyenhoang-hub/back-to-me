@@ -14,7 +14,6 @@ function getRuntimeProfile() {
   const userAgent = navigator.userAgent || "";
   const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent) || window.innerWidth <= 900;
   const isAndroid = /Android/i.test(userAgent);
-  const isIOS = /iPhone|iPad|iPod/i.test(userAgent);
   const isInAppBrowser = /FBAN|FBAV|Instagram|Line|MicroMessenger/i.test(userAgent);
   const deviceMemory = Number(navigator.deviceMemory || 0);
   const lowMemory = (deviceMemory > 0 && deviceMemory <= 4) || isInAppBrowser;
@@ -22,7 +21,6 @@ function getRuntimeProfile() {
   return {
     isMobile,
     isAndroid,
-    isIOS,
     isInAppBrowser,
     lowMemory
   };
@@ -40,44 +38,6 @@ function getExportScale(kind = "png") {
   if (profile.isInAppBrowser) return 2;
   if (profile.isMobile || profile.lowMemory) return 2;
   return Math.max(2, Math.min(3, Math.ceil(window.devicePixelRatio || 1)));
-}
-
-function getGifConfig() {
-  const profile = getRuntimeProfile();
-
-  if (profile.lowMemory) {
-    return {
-      width: 404,
-      height: 255,
-      frames: 10,
-      delay: 40,
-      workers: 1,
-      quality: 5,
-      captureScale: 2
-    };
-  }
-
-  if (profile.isMobile) {
-    return {
-      width: 506,
-      height: 319,
-      frames: 14,
-      delay: 34,
-      workers: 1,
-      quality: 3,
-      captureScale: 2
-    };
-  }
-
-  return {
-      width: 506,
-      height: 319,
-      frames: 16,
-      delay: 30,
-      workers: 2,
-      quality: 2,
-      captureScale: 2
-  };
 }
 
 function getPrintUploadScale() {
@@ -895,12 +855,12 @@ async function downloadCards() {
     }
 
     setProductMessage(
-      "Hệ thống đang tải 2 ảnh PNG. Nếu trình duyệt chặn một ảnh, bạn bấm nút còn lại ngay bên dưới nhé. Sau đó hãy upload đúng 2 ảnh này vào Google Form đăng ký.",
+      "Hệ thống đang tải 2 ảnh PNG. Nếu trình duyệt chặn một ảnh, bạn bấm nút còn lại ngay bên dưới nhé.",
       "is-success"
     );
   } catch (error) {
     console.error("Cannot export PNG cards.", error);
-    setProductMessage("Tải 2 ảnh PNG chưa thành công. Với điện thoại yếu, bạn hãy mở lại bằng trình duyệt ngoài Messenger nhé.", "is-error");
+    setProductMessage("Tải 2 ảnh PNG chưa thành công. Với một số thiết bị có hiệu năng hạn chế, bạn vui lòng mở bằng trình duyệt ngoài Messenger nhé.", "is-error");
   } finally {
     resetCardFace();
     restoreCardState(previousState);
@@ -958,7 +918,7 @@ async function downloadVideo() {
     
     triggerBlobDownload(videoBlob, "back-to-me-card.mp4");
 
-    setProductMessage("Đã xuất xong video MP4 chất lượng cao để đăng story. Bạn kiểm tra thư mục tải xuống nhé.", "is-success");
+    setProductMessage("Đã xuất xong video MP4 chất lượng cao. Bạn kiểm tra thư mục tải xuống nhé.", "is-success");
   } catch (error) {
     console.error("Cannot export video.", error);
     const detail = error && error.message ? ` (${error.message})` : "";
