@@ -744,9 +744,9 @@ async function renderVideoMp4({ adultCard, childCard }) {
     const firstFadeOffsetSeconds = (holdAdultMs / 1000).toFixed(3);
 
     const filterGraph = [
-      `[0:v]fps=30,scale=${VIDEO_RENDER_WIDTH}:${VIDEO_RENDER_HEIGHT}:flags=lanczos,setsar=1,format=yuv420p[v0]`,
-      `[1:v]fps=30,scale=${VIDEO_RENDER_WIDTH}:${VIDEO_RENDER_HEIGHT}:flags=lanczos,setsar=1,format=yuv420p[v1]`,
-      `[2:v]fps=30,scale=${VIDEO_RENDER_WIDTH}:${VIDEO_RENDER_HEIGHT}:flags=lanczos,setsar=1,format=yuv420p[v2]`,
+      `[0:v]fps=24,scale=${VIDEO_RENDER_WIDTH}:${VIDEO_RENDER_HEIGHT}:flags=lanczos,setsar=1,format=yuv420p[v0]`,
+      `[1:v]fps=24,scale=${VIDEO_RENDER_WIDTH}:${VIDEO_RENDER_HEIGHT}:flags=lanczos,setsar=1,format=yuv420p[v1]`,
+      `[2:v]fps=24,scale=${VIDEO_RENDER_WIDTH}:${VIDEO_RENDER_HEIGHT}:flags=lanczos,setsar=1,format=yuv420p[v2]`,
       `[v0][v1]xfade=transition=fade:duration=${transitionSeconds}:offset=${firstFadeOffsetSeconds}[x1]`,
       `[x1][v2]xfade=transition=fade:duration=${transitionSeconds}:offset=${secondFadeOffsetSeconds},format=yuv420p[video]`
     ].join(";");
@@ -767,9 +767,9 @@ async function renderVideoMp4({ adultCard, childCard }) {
       "-filter_complex", filterGraph,
       "-map", "[video]",
       "-an",
-      "-r", "30",
+      "-r", "24",
       "-c:v", "libx264",
-      "-preset", "veryfast",
+      "-preset", "ultrafast",
       "-tune", "stillimage",
       "-threads", "1",
       "-profile:v", "high",
