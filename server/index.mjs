@@ -686,15 +686,29 @@ function runCommand(command, args) {
     });
 
     let stderr = "";
+    let timedOut = false;
+    const timeoutId = setTimeout(() => {
+      timedOut = true;
+      child.kill("SIGKILL");
+    }, 45000);
 
     child.stderr.on("data", (chunk) => {
       stderr += chunk.toString();
     });
 
-    child.on("error", reject);
+    child.on("error", (error) => {
+      clearTimeout(timeoutId);
+      reject(error);
+    });
     child.on("close", (code) => {
+      clearTimeout(timeoutId);
       if (code === 0) {
         resolve();
+        return;
+      }
+
+      if (timedOut) {
+        reject(new Error("FFMPEG_TIMEOUT"));
         return;
       }
 
@@ -710,8 +724,10 @@ async function renderVideoMp4({ adultCard, childCard }) {
   }
 
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "back-to-me-video-"));
-  const adultPath = path.join(tempRoot, "adult-card.png");
-  const childPath = path.join(tempRoot, "child-card.png");
+  const adultExtension = adultCard.type === "image/jpeg" ? ".jpg" : ".png";
+  const childExtension = childCard.type === "image/jpeg" ? ".jpg" : ".png";
+  const adultPath = path.join(tempRoot, `adult-card${adultExtension}`);
+  const childPath = path.join(tempRoot, `child-card${childExtension}`);
   const outputPath = path.join(tempRoot, "back-to-me-video.mp4");
 
   try {
@@ -737,6 +753,8 @@ async function renderVideoMp4({ adultCard, childCard }) {
 
     const args = [
       "-y",
+      "-hide_banner",
+      "-loglevel", "error",
       "-loop", "1",
       "-t", adultSegmentSeconds,
       "-i", adultPath,
@@ -751,7 +769,9 @@ async function renderVideoMp4({ adultCard, childCard }) {
       "-an",
       "-r", "30",
       "-c:v", "libx264",
-      "-preset", "medium",
+      "-preset", "veryfast",
+      "-tune", "stillimage",
+      "-threads", "1",
       "-profile:v", "high",
       "-level", "4.1",
       "-pix_fmt", "yuv420p",
@@ -918,7 +938,8 @@ async function handleRenderVideo(request, response) {
       code: error && error.code ? error.code : ""
     });
 
-    json(response, 500, {
+    const statusCode = error && error.message === "FFMPEG_TIMEOUT" ? 503 : 500;
+    json(response, statusCode, {
       ok: false,
       error: "VIDEO_RENDER_FAILED",
       message: error && error.message ? error.message : "Unknown video render error."

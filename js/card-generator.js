@@ -90,82 +90,17 @@ function getPrintUploadScale() {
 }
 
 function triggerBlobDownload(blob, filename) {
-  const profile = getRuntimeProfile();
   const objectUrl = URL.createObjectURL(blob);
-
-  if (profile.isAndroid) {
-    // For Android, try window.open with blob URL - more reliable than anchor click
-    try {
-      window.open(objectUrl, '_blank');
-    } catch (error) {
-      console.warn('window.open failed, falling back to anchor click', error);
-      // Fallback to anchor method
-      const link = document.createElement("a");
-      link.href = objectUrl;
-      link.download = filename;
-      link.style.display = "none";
-      document.body.appendChild(link);
-      setTimeout(() => link.click(), 100);
-      setTimeout(() => {
-        document.body.removeChild(link);
-        URL.revokeObjectURL(objectUrl);
-      }, 3000);
-    }
-  } else {
-    // For desktop browsers, use the traditional method (faster)
-    const link = document.createElement("a");
-    link.href = objectUrl;
-    link.download = filename;
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
-  }
-}
-
-function triggerFormDownload(formData, filename) {
-  const profile = getRuntimeProfile();
-  
-  if (profile.isAndroid) {
-    // For Android, use form POST with target="_blank" to trigger download
-    // This bypasses blob URL issues on mobile browsers
-    const form = document.createElement("form");
-    form.method = "POST";
-    form.action = `${API_BASE_URL}/api/render-video`;
-    form.target = "_blank";
-    form.style.display = "none";
-    
-    // Append FormData entries to form
-    for (const [key, value] of formData.entries()) {
-      if (value instanceof Blob) {
-        const input = document.createElement("input");
-        input.type = "file";
-        input.name = key;
-        // Create a new File from blob with proper name
-        const file = new File([value], value.name || key, { type: value.type });
-        // Note: Can't directly set files on input, need to use DataTransfer
-        const dt = new DataTransfer();
-        dt.items.add(file);
-        input.files = dt.files;
-        form.appendChild(input);
-      } else {
-        const input = document.createElement("input");
-        input.type = "hidden";
-        input.name = key;
-        input.value = value;
-        form.appendChild(input);
-      }
-    }
-    
-    document.body.appendChild(form);
-    form.submit();
-    document.body.removeChild(form);
-  } else {
-    // For desktop, use blob method
-    fetchRenderedVideo(formData).then(blob => {
-      triggerBlobDownload(blob, filename);
-    }).catch(error => {
-      throw error;
-    });
-  }
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = filename;
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  setTimeout(() => {
+    document.body.removeChild(link);
+    URL.revokeObjectURL(objectUrl);
+  }, 2000);
 }
 
 function getVideoConfig() {
@@ -970,92 +905,6 @@ async function downloadCards() {
     resetCardFace();
     restoreCardState(previousState);
     setDownloadButtonsDisabled(false);
-  }
-}
-
-function drawVideoFrame(context, outputCanvas, adultCanvas, childCanvas, progress) {
-  context.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
-  context.globalAlpha = 1;
-  context.drawImage(adultCanvas, 0, 0, outputCanvas.width, outputCanvas.height);
-
-  if (progress > 0) {
-    context.globalAlpha = progress;
-    context.drawImage(childCanvas, 0, 0, outputCanvas.width, outputCanvas.height);
-  }
-
-  context.globalAlpha = 1;
-}
-
-function easeInOutCubic(value) {
-  if (value <= 0) return 0;
-  if (value >= 1) return 1;
-
-  return value < 0.5
-    ? 4 * value * value * value
-    : 1 - Math.pow(-2 * value + 2, 3) / 2;
-}
-
-async function recordCanvasSequence(outputCanvas, drawStep, format, config) {
-  const stream = outputCanvas.captureStream(config.fps);
-  const chunks = [];
-  const recorder = new MediaRecorder(stream, {
-    mimeType: format.mimeType,
-    videoBitsPerSecond: config.bitrate
-  });
-
-  recorder.ondataavailable = (event) => {
-    if (event.data && event.data.size > 0) {
-      chunks.push(event.data);
-    }
-  };
-
-  const finished = new Promise((resolve, reject) => {
-    recorder.onstop = () => resolve(new Blob(chunks, { type: format.mimeType }));
-    recorder.onerror = () => reject(new Error("Video recording failed."));
-  });
-
-  recorder.start(250);
-  await drawStep();
-  await wait(180);
-  if (typeof recorder.requestData === "function" && recorder.state === "recording") {
-    recorder.requestData();
-  }
-  recorder.stop();
-
-  return finished;
-}
-
-async function playVideoSequence(config, outputCanvas, context, adultCanvas, childCanvas) {
-  const frameMs = Math.round(1000 / config.fps);
-  const holdFrames = Math.round(config.holdMs / frameMs);
-  const transitionFrames = Math.round(config.transitionMs / frameMs);
-  const pauseFrames = Math.round(config.pauseMs / frameMs);
-
-  for (let i = 0; i < holdFrames; i += 1) {
-    drawVideoFrame(context, outputCanvas, adultCanvas, childCanvas, 0);
-    await wait(frameMs);
-  }
-
-  for (let i = 0; i <= transitionFrames; i += 1) {
-    const progress = easeInOutCubic(i / transitionFrames);
-    drawVideoFrame(context, outputCanvas, adultCanvas, childCanvas, progress);
-    await wait(frameMs);
-  }
-
-  for (let i = 0; i < pauseFrames; i += 1) {
-    drawVideoFrame(context, outputCanvas, childCanvas, adultCanvas, 0);
-    await wait(frameMs);
-  }
-
-  for (let i = 0; i <= transitionFrames; i += 1) {
-    const progress = easeInOutCubic(i / transitionFrames);
-    drawVideoFrame(context, outputCanvas, childCanvas, adultCanvas, progress);
-    await wait(frameMs);
-  }
-
-  for (let i = 0; i < holdFrames; i += 1) {
-    drawVideoFrame(context, outputCanvas, adultCanvas, childCanvas, 0);
-    await wait(frameMs);
   }
 }
 
