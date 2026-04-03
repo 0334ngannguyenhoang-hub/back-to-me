@@ -632,6 +632,9 @@ async function fetchRenderedVideo(formData) {
       if (payload && payload.error) {
         errorMessage = `${errorMessage}: ${payload.error}`;
       }
+      if (payload && payload.message) {
+        errorMessage = `${errorMessage} (${payload.message})`;
+      }
     } catch {}
 
     throw new Error(errorMessage);
