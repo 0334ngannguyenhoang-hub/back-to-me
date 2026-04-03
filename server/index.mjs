@@ -30,6 +30,8 @@ const S3_SECRET_ACCESS_KEY = (process.env.S3_SECRET_ACCESS_KEY || "").trim();
 const S3_PUBLIC_BASE_URL = (process.env.S3_PUBLIC_BASE_URL || "").trim();
 const POSTGRES_URL = (process.env.POSTGRES_URL || "").trim();
 const FFMPEG_PATH = (process.env.FFMPEG_PATH || "").trim();
+const CARD_PRINT_WIDTH = 1011;
+const CARD_PRINT_HEIGHT = 638;
 
 await mkdir(UPLOAD_ROOT, { recursive: true });
 await mkdir(DATA_ROOT, { recursive: true });
