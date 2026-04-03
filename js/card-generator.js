@@ -13,12 +13,16 @@ const CARD_PRINT_HEIGHT = 638;
 function getRuntimeProfile() {
   const userAgent = navigator.userAgent || "";
   const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent) || window.innerWidth <= 900;
+  const isAndroid = /Android/i.test(userAgent);
+  const isIOS = /iPhone|iPad|iPod/i.test(userAgent);
   const isInAppBrowser = /FBAN|FBAV|Instagram|Line|MicroMessenger/i.test(userAgent);
   const deviceMemory = Number(navigator.deviceMemory || 0);
   const lowMemory = (deviceMemory > 0 && deviceMemory <= 4) || isInAppBrowser;
 
   return {
     isMobile,
+    isAndroid,
+    isIOS,
     isInAppBrowser,
     lowMemory
   };
@@ -124,32 +128,6 @@ function getVideoConfig() {
     transitionMs: 1400,
     pauseMs: 3800
   };
-}
-
-function getSupportedVideoFormat() {
-  if (typeof MediaRecorder === "undefined") {
-    return null;
-  }
-
-  const userAgent = navigator.userAgent || "";
-  const isSafariFamily =
-    /Safari/i.test(userAgent) &&
-    !/Chrome|CriOS|Edg|OPR|SamsungBrowser|Firefox|FxiOS/i.test(userAgent);
-
-  const candidates = isSafariFamily
-    ? [
-        { mimeType: "video/mp4;codecs=h264", extension: "mp4" },
-        { mimeType: "video/mp4", extension: "mp4" }
-      ]
-    : [];
-
-  for (const candidate of candidates) {
-    if (MediaRecorder.isTypeSupported(candidate.mimeType)) {
-      return candidate;
-    }
-  }
-
-  return null;
 }
 
 function setMessage(element, message, type) {
@@ -627,6 +605,28 @@ function canvasToBlob(canvas) {
   });
 }
 
+async function fetchRenderedVideo(formData) {
+  const response = await fetch(`${API_BASE_URL}/api/render-video`, {
+    method: "POST",
+    body: formData
+  });
+
+  if (!response.ok) {
+    let errorMessage = `Video render failed with status ${response.status}`;
+
+    try {
+      const payload = await response.json();
+      if (payload && payload.error) {
+        errorMessage = `${errorMessage}: ${payload.error}`;
+      }
+    } catch {}
+
+    throw new Error(errorMessage);
+  }
+
+  return response.blob();
+}
+
 function resizeCanvas(sourceCanvas, targetWidth, targetHeight) {
   const outputCanvas = document.createElement("canvas");
   outputCanvas.width = targetWidth;
@@ -959,57 +959,54 @@ async function downloadVideo() {
     return;
   }
 
-  const format = getSupportedVideoFormat();
-  if (!format) {
-    showProductBlockingNotice("Thiết bị này chưa xuất được video MP4 ổn định để đăng story Instagram. Bạn hãy mở link bằng Safari trên iPhone/iPad hoặc Safari trên Mac nhé.");
-    return;
-  }
-
   const { card1, card2 } = getCardSides();
   const { gifButton } = getProductButtons();
   const previousState = captureCardState();
   const config = getVideoConfig();
   setDownloadButtonsDisabled(true, gifButton);
-  setProductMessage("Đang render video chất lượng cao...", "is-loading");
+  setProductMessage("Đang render video MP4 chất lượng cao trên server...", "is-loading");
 
   try {
     await waitForImages(document.body);
 
     showCardFace("adult");
     await wait(220);
-    const adultCanvas = await captureCardCanvas(card1, config.captureScale);
+    const adultCanvas = resizeCanvas(
+      await captureCardCanvas(card1, config.captureScale),
+      CARD_PRINT_WIDTH,
+      CARD_PRINT_HEIGHT
+    );
 
     showCardFace("child");
     await wait(320);
-    const childCanvas = await captureCardCanvas(card2, config.captureScale);
-
-    const outputCanvas = document.createElement("canvas");
-    outputCanvas.width = config.width;
-    outputCanvas.height = config.height;
-    const context = outputCanvas.getContext("2d");
-    context.imageSmoothingEnabled = true;
-    context.imageSmoothingQuality = "high";
-
-    drawVideoFrame(context, outputCanvas, adultCanvas, childCanvas, 0);
-
-    const videoBlob = await recordCanvasSequence(
-      outputCanvas,
-      async () => playVideoSequence(config, outputCanvas, context, adultCanvas, childCanvas),
-      format,
-      config
+    const childCanvas = resizeCanvas(
+      await captureCardCanvas(card2, config.captureScale),
+      CARD_PRINT_WIDTH,
+      CARD_PRINT_HEIGHT
     );
+
+    const [adultBlob, childBlob] = await Promise.all([
+      canvasToBlob(adultCanvas),
+      canvasToBlob(childCanvas)
+    ]);
+
+    const formData = new FormData();
+    formData.append("adultCard", adultBlob, "adult-card.png");
+    formData.append("childCard", childBlob, "child-card.png");
+
+    const videoBlob = await fetchRenderedVideo(formData);
 
     const objectUrl = URL.createObjectURL(videoBlob);
     const link = document.createElement("a");
     link.href = objectUrl;
-    link.download = `back-to-me-card.${format.extension}`;
+    link.download = "back-to-me-card.mp4";
     link.click();
     setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
 
     setProductMessage("Đã xuất xong video MP4 chất lượng cao để đăng story. Bạn kiểm tra thư mục tải xuống nhé.", "is-success");
   } catch (error) {
     console.error("Cannot export video.", error);
-    setProductMessage("Xuất video chưa thành công. Bạn hãy thử lại bằng Chrome hoặc Safari nhé.", "is-error");
+    setProductMessage("Xuất video MP4 chưa thành công. Bạn hãy thử lại sau ít phút nhé.", "is-error");
   } finally {
     resetCardFace();
     restoreCardState(previousState);

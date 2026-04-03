@@ -1,9 +1,11 @@
 import { createServer } from "node:http";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 import crypto from "node:crypto";
+import os from "node:os";
+import { spawn } from "node:child_process";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,6 +29,7 @@ const S3_ACCESS_KEY_ID = (process.env.S3_ACCESS_KEY_ID || "").trim();
 const S3_SECRET_ACCESS_KEY = (process.env.S3_SECRET_ACCESS_KEY || "").trim();
 const S3_PUBLIC_BASE_URL = (process.env.S3_PUBLIC_BASE_URL || "").trim();
 const POSTGRES_URL = (process.env.POSTGRES_URL || "").trim();
+const FFMPEG_PATH = (process.env.FFMPEG_PATH || "").trim();
 
 await mkdir(UPLOAD_ROOT, { recursive: true });
 await mkdir(DATA_ROOT, { recursive: true });
@@ -645,7 +648,118 @@ function getContentType(filePath) {
     case ".ttf": return "font/ttf";
     case ".woff": return "font/woff";
     case ".woff2": return "font/woff2";
+    case ".mp4": return "video/mp4";
     default: return "application/octet-stream";
+  }
+}
+
+async function parseMultipartForm(request) {
+  const webRequest = new Request(`http://${request.headers.host || "127.0.0.1"}${request.url}`, {
+    method: request.method,
+    headers: request.headers,
+    body: request,
+    duplex: "half"
+  });
+
+  return webRequest.formData();
+}
+
+async function resolveFfmpegPath() {
+  if (FFMPEG_PATH) return FFMPEG_PATH;
+
+  try {
+    const ffmpegStatic = await import("ffmpeg-static");
+    return ffmpegStatic.default || ffmpegStatic;
+  } catch {
+    return "";
+  }
+}
+
+function runCommand(command, args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      stdio: ["ignore", "pipe", "pipe"]
+    });
+
+    let stderr = "";
+
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+
+      reject(new Error(stderr.trim() || `Command failed with exit code ${code}`));
+    });
+  });
+}
+
+async function renderVideoMp4({ adultCard, childCard }) {
+  const ffmpegPath = await resolveFfmpegPath();
+  if (!ffmpegPath) {
+    throw new Error("FFMPEG_UNAVAILABLE");
+  }
+
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "back-to-me-video-"));
+  const adultPath = path.join(tempRoot, "adult-card.png");
+  const childPath = path.join(tempRoot, "child-card.png");
+  const outputPath = path.join(tempRoot, "back-to-me-video.mp4");
+
+  try {
+    await writeFile(adultPath, Buffer.from(await adultCard.arrayBuffer()));
+    await writeFile(childPath, Buffer.from(await childCard.arrayBuffer()));
+
+    const holdAdultMs = 1700;
+    const holdChildMs = 3800;
+    const transitionMs = 1400;
+    const transitionSeconds = (transitionMs / 1000).toFixed(3);
+    const adultSegmentSeconds = ((holdAdultMs + transitionMs) / 1000).toFixed(3);
+    const childSegmentSeconds = ((holdChildMs + transitionMs * 2) / 1000).toFixed(3);
+    const secondFadeOffsetSeconds = ((holdAdultMs + transitionMs + holdChildMs) / 1000).toFixed(3);
+    const firstFadeOffsetSeconds = (holdAdultMs / 1000).toFixed(3);
+
+    const filterGraph = [
+      `[0:v]fps=30,scale=${CARD_PRINT_WIDTH}:${CARD_PRINT_HEIGHT}:flags=lanczos,setsar=1,format=yuv420p[v0]`,
+      `[1:v]fps=30,scale=${CARD_PRINT_WIDTH}:${CARD_PRINT_HEIGHT}:flags=lanczos,setsar=1,format=yuv420p[v1]`,
+      `[2:v]fps=30,scale=${CARD_PRINT_WIDTH}:${CARD_PRINT_HEIGHT}:flags=lanczos,setsar=1,format=yuv420p[v2]`,
+      `[v0][v1]xfade=transition=fade:duration=${transitionSeconds}:offset=${firstFadeOffsetSeconds}[x1]`,
+      `[x1][v2]xfade=transition=fade:duration=${transitionSeconds}:offset=${secondFadeOffsetSeconds},format=yuv420p[video]`
+    ].join(";");
+
+    const args = [
+      "-y",
+      "-loop", "1",
+      "-t", adultSegmentSeconds,
+      "-i", adultPath,
+      "-loop", "1",
+      "-t", childSegmentSeconds,
+      "-i", childPath,
+      "-loop", "1",
+      "-t", adultSegmentSeconds,
+      "-i", adultPath,
+      "-filter_complex", filterGraph,
+      "-map", "[video]",
+      "-an",
+      "-r", "30",
+      "-c:v", "libx264",
+      "-preset", "medium",
+      "-profile:v", "high",
+      "-level", "4.1",
+      "-pix_fmt", "yuv420p",
+      "-movflags", "+faststart",
+      "-crf", "18",
+      outputPath
+    ];
+
+    await runCommand(ffmpegPath, args);
+    return await readFile(outputPath);
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
   }
 }
 
@@ -676,14 +790,7 @@ async function handleSubmission(request, response) {
   let formData;
 
   try {
-    const webRequest = new Request(`http://${request.headers.host || "127.0.0.1"}${request.url}`, {
-      method: request.method,
-      headers: request.headers,
-      body: request,
-      duplex: "half"
-    });
-
-    formData = await webRequest.formData();
+    formData = await parseMultipartForm(request);
   } catch (error) {
     console.error("Cannot parse multipart form.", error);
     json(response, 400, { ok: false, error: "INVALID_FORM_DATA" });
@@ -769,6 +876,48 @@ async function handleSubmission(request, response) {
       ok: false,
       error: "SUBMISSION_SAVE_FAILED",
       message: error && error.message ? error.message : "Unknown submission save error."
+    });
+  }
+}
+
+async function handleRenderVideo(request, response) {
+  let formData;
+
+  try {
+    formData = await parseMultipartForm(request);
+  } catch (error) {
+    console.error("Cannot parse video render form.", error);
+    json(response, 400, { ok: false, error: "INVALID_FORM_DATA" });
+    return;
+  }
+
+  const adultCard = formData.get("adultCard");
+  const childCard = formData.get("childCard");
+
+  if (!(adultCard instanceof File) || !(childCard instanceof File)) {
+    json(response, 400, { ok: false, error: "MISSING_REQUIRED_FIELDS" });
+    return;
+  }
+
+  try {
+    const videoBuffer = await renderVideoMp4({ adultCard, childCard });
+    response.writeHead(200, {
+      "Content-Type": "video/mp4",
+      "Content-Disposition": 'attachment; filename="back-to-me-card.mp4"',
+      "Cache-Control": "no-store",
+      "Access-Control-Allow-Origin": "*"
+    });
+    response.end(videoBuffer);
+  } catch (error) {
+    console.error("Cannot render video.", {
+      message: error && error.message ? error.message : String(error),
+      code: error && error.code ? error.code : ""
+    });
+
+    json(response, 500, {
+      ok: false,
+      error: "VIDEO_RENDER_FAILED",
+      message: error && error.message ? error.message : "Unknown video render error."
     });
   }
 }
@@ -918,6 +1067,11 @@ const server = createServer(async (request, response) => {
 
     if (request.method === "POST" && pathname === "/api/submissions") {
       await handleSubmission(request, response);
+      return;
+    }
+
+    if (request.method === "POST" && pathname === "/api/render-video") {
+      await handleRenderVideo(request, response);
       return;
     }
 
