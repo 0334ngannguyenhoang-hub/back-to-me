@@ -89,6 +89,40 @@ function getPrintUploadScale() {
   return 4;
 }
 
+function triggerBlobDownload(blob, filename) {
+  const profile = getRuntimeProfile();
+  const objectUrl = URL.createObjectURL(blob);
+
+  if (profile.isAndroid) {
+    // For Android, append link to DOM and click - this is more reliable
+    // than creating/clicking in memory on mobile browsers
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = filename;
+    link.style.display = "none";
+    
+    document.body.appendChild(link);
+    
+    // Use a small delay to ensure DOM is updated
+    setTimeout(() => {
+      link.click();
+    }, 100);
+    
+    // Remove link and revoke URL after download starts
+    setTimeout(() => {
+      document.body.removeChild(link);
+      URL.revokeObjectURL(objectUrl);
+    }, 3000);
+  } else {
+    // For desktop browsers, use the traditional method (faster)
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = filename;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
+  }
+}
+
 function getVideoConfig() {
   const profile = getRuntimeProfile();
 
@@ -1011,13 +1045,7 @@ async function downloadVideo() {
     formData.append("childCard", childBlob, "child-card.jpg");
 
     const videoBlob = await fetchRenderedVideo(formData);
-
-    const objectUrl = URL.createObjectURL(videoBlob);
-    const link = document.createElement("a");
-    link.href = objectUrl;
-    link.download = "back-to-me-card.mp4";
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
+    triggerBlobDownload(videoBlob, "back-to-me-card.mp4");
 
     setProductMessage("Đã xuất xong video MP4 chất lượng cao để đăng story. Bạn kiểm tra thư mục tải xuống nhé.", "is-success");
   } catch (error) {
