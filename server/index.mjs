@@ -32,6 +32,8 @@ const POSTGRES_URL = (process.env.POSTGRES_URL || "").trim();
 const FFMPEG_PATH = (process.env.FFMPEG_PATH || "").trim();
 const CARD_PRINT_WIDTH = 1011;
 const CARD_PRINT_HEIGHT = 638;
+const VIDEO_RENDER_WIDTH = 1012;
+const VIDEO_RENDER_HEIGHT = 638;
 
 await mkdir(UPLOAD_ROOT, { recursive: true });
 await mkdir(DATA_ROOT, { recursive: true });
@@ -726,9 +728,9 @@ async function renderVideoMp4({ adultCard, childCard }) {
     const firstFadeOffsetSeconds = (holdAdultMs / 1000).toFixed(3);
 
     const filterGraph = [
-      `[0:v]fps=30,scale=${CARD_PRINT_WIDTH}:${CARD_PRINT_HEIGHT}:flags=lanczos,setsar=1,format=yuv420p[v0]`,
-      `[1:v]fps=30,scale=${CARD_PRINT_WIDTH}:${CARD_PRINT_HEIGHT}:flags=lanczos,setsar=1,format=yuv420p[v1]`,
-      `[2:v]fps=30,scale=${CARD_PRINT_WIDTH}:${CARD_PRINT_HEIGHT}:flags=lanczos,setsar=1,format=yuv420p[v2]`,
+      `[0:v]fps=30,scale=${VIDEO_RENDER_WIDTH}:${VIDEO_RENDER_HEIGHT}:flags=lanczos,setsar=1,format=yuv420p[v0]`,
+      `[1:v]fps=30,scale=${VIDEO_RENDER_WIDTH}:${VIDEO_RENDER_HEIGHT}:flags=lanczos,setsar=1,format=yuv420p[v1]`,
+      `[2:v]fps=30,scale=${VIDEO_RENDER_WIDTH}:${VIDEO_RENDER_HEIGHT}:flags=lanczos,setsar=1,format=yuv420p[v2]`,
       `[v0][v1]xfade=transition=fade:duration=${transitionSeconds}:offset=${firstFadeOffsetSeconds}[x1]`,
       `[x1][v2]xfade=transition=fade:duration=${transitionSeconds}:offset=${secondFadeOffsetSeconds},format=yuv420p[video]`
     ].join(";");
